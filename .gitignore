@@ -4,7 +4,7 @@
 # Example code in package build process
 *-Ex.R
 
-*local_script.hm
+*local_script.hm.R
 *report.html
 */backup
 */img

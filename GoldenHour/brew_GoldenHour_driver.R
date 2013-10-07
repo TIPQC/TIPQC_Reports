@@ -1,0 +1,5 @@
+library(brew)
+library(Hmisc)
+library(xtable)
+library(qcc)
+brew('tipqc_GoldenHour.html', output='report.html')

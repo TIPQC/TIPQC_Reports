@@ -1,0 +1,1062 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>TIPQC Golden Hour Report</title>
+  <style type="text/css">
+    @media print{@page {size: landscape}}
+    .page-break-before { page-break-before: always }
+    .page-break-none { page-break-before: never }
+    h2 { font-size: 1.25em }
+    h3 { font-size: 1em}
+    li { margin-bottom: 5px; }
+    .section { margin-top: 20px;}
+    .subsection { margin-bottom: 20px;}
+    .redtext{color:red;}
+  </style>
+</head>
+<body>
+  <script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" ></script>
+  <script language="javascript" type="text/javascript" src="http://datatables.net/download/build/jquery.dataTables.nightly.js"></script>
+  <script type='text/javascript'>
+    console.log("hello");
+    $(document).ready(function(){
+      $('#myTable').dataTable();
+    });  
+  </script>
+  <%
+    # create img file if not exists
+    if (!file.exists("img")){
+      dir.create(file.path(getwd(), "img"))
+    }
+  %>
+    <center>
+        <h1>- TIPQC Golden Hour Report -</h1>
+        <%=
+           format(Sys.time(), "%B %d, %Y %I:%M %p", usetz = TRUE)
+        %>
+    </center>
+    <%
+        oldpar <- par(no.readonly = TRUE) # the whole list of settable pars.
+        # set functions
+        source("tipqc_GoldenHour_functions.R")		
+
+        # format data
+        source("tipqc_GoldenHour_formatData.R")
+
+    %>
+    <!-- ###################################################################################   -->
+    <!-- ###################################################################################   -->
+    <!-- ###################################################################################   -->
+
+    <br/>
+    <center>
+      <p>
+        <big> - <b>IMPORTANT</b> - </big>
+        <br/>
+        <em>This report is based on the most current information available in the REDCap database.</em>
+        <br/>
+        <em>There may be a lag in data entry (see below) and/or data entry errors that may cause discrepancies.</em>
+      </p>
+    </center>
+    <br/>
+    <!-- ###################################################################################   -->
+    <!-- ####################### 1. Data Quality ###########################################   -->
+    <!-- ###################################################################################   -->
+    <ol>
+        <li class="section"><h2>Data Quality</h2>
+            <ol>
+                <!-- ################### 1.1 Days since the 'most recent date' captured in REDCap ##################   -->
+                <li> <h3>Days since the 'most recent date' captured in REDCap</h3>
+                    <ul>
+                        <li>
+                            <% if(USER != 'state_user'){
+                                        mySubset = subset(rdata,!is.na(rdata$dob))
+                                        mySubset$lag = as.numeric(sub("Time difference of","",Sys.Date()-as.Date(as.character(mySubset$dob),format="%m/%d/%y"),fixed=TRUE))
+                                        mySubset= subset(mySubset,mySubset$lag>=0)
+                                        mylag = min(mySubset$lag)
+                                        cat(paste(mylag," days",sep=""))
+                                    } else
+                                    {	
+
+                                        # get data lag for each clinic
+                                        tmp = subset(rdata,select=c('clinic','dob'))
+                                        tmp$lag = as.numeric(sub("Time difference of","",Sys.Date()-as.Date(as.character(tmp$dob),format="%m/%d/%y"),fixed=TRUE))
+                                        tmp = subset(tmp,!is.na(tmp$clinic) & !is.na(tmp$lag) & tmp$lag>=0)
+                                        
+                                        clinicList = unique(tmp$clinic)
+                                        boxPlotPoints = c()
+                                        #mostRecentDOB = c()
+                                        for(clinic in 1:length(clinicList))
+                                        {                                         
+                                            # subset the data by the given clinic
+                                            clinic_subset = tmp[tmp$clinic==clinicList[clinic],]
+
+                                            # get the last dob for given subset							
+                                            dataLagInDays = tail(clinic_subset$lag,1)
+                                            #mostRecentDOB = c(mostRecentDOB,as.Date(tail(as.character(clinic_subset$dob),1),format="%m/%d/%y"))
+                                            boxPlotPoints = c(boxPlotPoints,as.numeric(dataLagInDays))
+                                        }
+                                        junk3 = summary(boxPlotPoints)
+
+                                        # start writing png
+                                        h = 250					
+                                        w = 800
+                                        png('img/boxplot_dataLag.png',height=h,width=w)
+
+                                        # mgp 1-distance of the axis labels or titles from the axes, 2-distance of the tick mark labels from the axes, 3-distance of the tick mark symbols from the axes.
+                                        # mar->c(bottom, left, top, right)
+                                        par(mar = c(10, 1, 1, 1), cex.axis=.8, mgp = c(8, 0.75, 0), font.lab = 2, las = 3)
+                                        if(min(boxPlotPoints)<0)
+                                        {
+                                            ymin = min(boxPlotPoints)
+                                        }else
+                                        {
+                                            ymin = 0
+                                        }
+
+
+                                        boxplot(boxPlotPoints, horizontal = TRUE, ylim = c(ymin, max(boxPlotPoints)), axes = FALSE, xlab = "\nDays since 'most recent date' captured in REDCap")
+
+                                    # label 0 on x axis
+                                    axis(side=1,at=0,labels=0) 
+                                    #label five num summary on x axis
+                                    axis(side=1,at=junk3,labels=round(junk3,1),hadj=1) 
+
+                                    # add min, max, etc labels
+                                    # if, for example, the min and the 25th qu. are the same, stagger the label
+                                    five_num_sum_labels = c("Min", "25th", "Median", "Mean", "75th", "Max")
+
+                                    myVal = c()
+                                            myLab = c()
+                                            v=1
+                                            l=1
+                                            i=1
+                                            alreadySet = c()
+
+                                            for(i in 1:length(junk3))
+                                            {
+                                                    if(!(i %in% alreadySet))
+                                                    {
+                                                            myLab[l] = five_num_sum_labels[i]
+                                                            myVal[v] = junk3[i]
+                                                            for(j in 1:length(junk3))
+                                                            {
+                                                                    if(i!=j & junk3[i]==junk3[j])
+                                                                    {
+                                                                            myLab[l] = paste(myLab[l],", ",five_num_sum_labels[j],sep="")
+                                                                            alreadySet = c(alreadySet,j)			
+                                                                    }
+                                                            }
+                                                            l = l+1
+                                                            v = v+1
+                                                    }
+
+                                            }
+
+                                            axis(side=1,at=myVal,labels=myLab,font.axis=2,line=2,tick=FALSE,hadj=1)
+
+                                    # add the point for the mean
+                                    points(x = junk3["Mean"], y = 1, pch = 19)
+
+                                    # add x(s) for the actual points for each clinic
+                                    randomJitterPoints = runif(length(boxPlotPoints),0.75,1.25)
+                                    points(x=boxPlotPoints,y=randomJitterPoints,pch=4,col="blue",cex=1.5)
+
+                                            box()
+                                            box("figure")
+
+                                            dev.off()
+
+                                            rm(junk3)
+                                            #par(oldpar)
+                                            explanationSentence = paste("The following (boxplot) figure illustrates the distribution of the numbers of days since the 'most recent date' captured in REDCap for each participating center (ie, as of 'today', ", format(thisreport, format = "%B %d, %Y"),"). The 'most recent date' is defined as the infant's date of birth. This figure considers data from N = ", length(clinicList), " participating centers. The blue X's represent the data lag for an individual center.") 
+                                            cat(explanationSentence)
+                                            
+                                    }
+
+
+
+                            %>
+                            </li>
+                        </ul>
+                        <% if(USER == 'state_user') cat("<br><center><img src='img/boxplot_dataLag.png'></center><br>") %>
+
+
+                    </li>
+                    <!-- ############################## 1.2 Data Descriptives #################################   -->
+                    <li><h3>Data Descriptives</h3>
+                        <ul>
+                            <li>As of 'today' (<%= format(thisreport, format = "%B %d, %Y") %>), a total of <%= nrow(hospdata) %> patients (ie, records) have been saved in REDCap for <%= ifelse(USER != "state_user", "your center", "all participating centers") %>.
+                            </li>
+
+                            <%
+                            if(USER == "state_user") {
+
+                               # For state_user, determine the number of records per participating clinic - will use in next section
+                               record_counts <- data.frame(table(rdata$clinic))
+                               record_counts <- record_counts[order(record_counts$Var1), ]
+                               names(record_counts) <- c("Participating Center", "No. of patients")
+
+
+                               cat("<li>The following table denotes the number of patients per participating center.\n")
+                               print(xtable(record_counts, align = c("c", "c", "r")), type = "html", include.rownames = FALSE)
+                               cat("</li><br>")
+                            }
+                            %>
+
+                        </ul>
+                    </li>
+                    <!-- ############################## 1.3 Data Entry Checks #################################   -->
+                    <li><h3>Data Entry Checks</h3>
+                        <% if(USER == "state_user")
+                            {
+                                    cat("Following are counts of possible errors in the REDCap database records for all centers:<br><br>")
+                            }else
+                                    cat("Please check your REDCap database records for the following possible data errors:<br><br><ul>") 
+                            
+                            # subset where infant was admitted to nicu
+                            rdata_nicu = subset(rdata,rdata$nicu==1)
+                            clinicList = unique(rdata$clinic)
+
+                            myTable = rbind(
+                                    dataChecks('dob',USER,rdata,c('study_id','dob'),clinicList),
+                                    dataChecks('ega',USER,rdata_nicu,c('study_id','dob','ega'),clinicList),
+                                    dataChecks('apgar',USER,rdata_nicu,c('study_id','dob','apgar_1','apgar_5','apgar_10'),clinicList),
+                                    dataChecks('fio2',USER,rdata_nicu,c('study_id','dob','fio2_5'),clinicList),
+                                    dataChecks('sao2',USER,rdata_nicu,c('study_id','dob','sao2_5'),clinicList),
+                                    dataChecks('dod',USER,rdata_nicu,c('study_id','dob','discharge_date'),clinicList)
+                            )
+
+                            if(USER == "state_user")
+                            {
+
+                                    clinicList = c(unique(rdata$clinic))
+                                    clinicList = clinicList[order(clinicList)]
+                                    rowLabels = c(paste("A date of birth that is missing, occurring before 5/1/2012, or occurring after today (",format(Sys.time(), "%B %d, %Y", usetz = TRUE),")",sep=""),
+                                                        "A missing gestational age at delivery (if admitted to NICU)",
+                                                        "An APGAR score outside of the 0-10 range (if admitted to NICU)",
+                                                        "An FiO2 score outside of the 0.21-1.0 range (if admitted to NICU)",
+                                                        "An SaO2 score outside of the 0-100% range (if admitted to NICU)",
+                                                        "A date of discharge occurring before date of birth, >1 year after birth, or after today (if admitted to NICU)")
+                                    #myxtable = print(xtable(myTable),type="html")
+                                    cat(paste("<table border=1>
+                                                    <tr>
+                                                            <th rowspan=2> 
+                                                                    Data Entry Check
+                                                            </th> 
+                                                            <th colspan=",length(clinicList),"> 
+                                                                    Participating Center 
+                                                            </th> 
+                                                            <th rowspan=2> 
+                                                                    Total 
+                                                            </th>
+                                                    </tr>
+                                                    <tr>
+                                            ",sep=""))
+                                    for(clinic in 1:length(clinicList))
+                                    {
+                                            cat(paste("<th>",clinicList[clinic],"</th>",sep=""))
+                                    }
+                                    cat("</tr>")
+
+                                    for(row in 1:nrow(myTable))
+                                    {
+                                            # Data Entry Check
+                                            cat(paste("<tr><td>",rowLabels[row],"</td>",sep=""))
+                                            # Counts for each clinic
+                                            for(col in 1:ncol(myTable))
+                                            {
+                                                    # if count > 0, mark red
+                                                    if(myTable[row,col]>0)
+                                                            span = paste("<span class='redtext'>",myTable[row,col],"</span>",sep="")
+                                                    else
+                                                            span = myTable[row,col]
+
+                                                    cat(paste("<td>",span,"</td>",sep=""))
+                                            }
+                                            # Total Column
+                                            # if count > 0, mark red
+                                                    if(sum(myTable[row,])>0)
+                                                            span = paste("<span class='redtext'>",sum(myTable[row,]),"</span>",sep="")
+                                                    else
+                                                            span = sum(myTable[row,])
+                                            cat(paste("<td>",span,"</td>",sep=""))
+                                            cat("</tr>")
+                                    }
+                                    cat("</table>")
+                            }
+
+                            # remove records with missing dob, since that messes up everything past this point
+                            rdata = subset(rdata,!is.na(rdata$month))
+                            # remove records where dob occurs before pilot date (05/01/12) or after today
+                            rdata = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")<Sys.Date())
+                            rdata = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>as.Date("2012-05-01"))
+
+                        %>
+                        <span class="page-break-none"><h3><i>Note: From this point forward, records with a date of birth that is missing or outside the range of May 01, 2012 - <%=format(thisreport, format = "%B %d, %Y")%> are excluded from analysis. </i></h3></span></li>
+			<% if(USER != "state_user") cat("</ul>") %>
+			<!-- ############################## 1.4 Data Completion #################################   -->
+			<li class="page-break-before"><h3>Data Completion</h3>
+				<%	
+					# table of summary of completion across 19 fields
+					requiredFields_nicu = c('dob','ega','pre_resusc_checklist','pre_resusc_briefing','apgar_1',
+								'apgar_5','fio2_5','sao2_5','post_resusc_briefing','birthweight',
+								'admit_temp','surfactant_eligible','iv_access_obtained',
+								'glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code',
+								'pco2_indicated','parents_commun')
+                                        requiredFields_nonNicu = c('dob','pre_resusc_checklist','pre_resusc_briefing', 'post_resusc_briefing', 
+                                                                'apgar_1','apgar_5','fio2_5','sao2_5')
+                        
+					# subset of required fields from kick-off (9/2012)
+					requiredFieldsSubset_nicu = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="1",select=c('clinic',requiredFields_nicu))
+                                        requiredFieldsSubset_nonNicu = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="0",select=c('clinic',requiredFields_nonNicu))
+                                        
+                                        
+					#table(is.na(requiredFieldsSubset[,6]),requiredFieldsSubset$clinic)
+					
+					
+					if(USER=="state_user")
+					{
+						cat(paste("The following table depicts the percent completion of all required fields for each participating center from the kick-off date (September 2012).
+                                                            Record entries that are non-missing are considered 'complete'.
+                                                            The required fields are the ",length(requiredFields_nicu)," fields plotted in this section of the report.
+                                                            The fields plotted in the last two charts are only applicable for infants that needed further stabilization or treatment after the initial resuscitation.<br><br> ",sep=''))
+						numerator = c()
+						denominator = c()
+						numRecordsFromKickoff = c()
+						for(clinic in 1:length(clinicList))
+						{
+							
+							myClinic = clinicList[clinic]
+                                                        # admitted to nicu
+							clinic_subset_nicu = subset(requiredFieldsSubset_nicu,requiredFieldsSubset_nicu$clinic==myClinic,select=requiredFields_nicu)
+							notNA_nicu = !is.na(clinic_subset_nicu)
+                                                        # not admitted to nicu
+                                                        clinic_subset_nonNicu = subset(requiredFieldsSubset_nonNicu,requiredFieldsSubset_nonNicu$clinic==myClinic,select=requiredFields_nonNicu)
+							notNA_nonNicu = !is.na(clinic_subset_nonNicu)
+                                                        # calculate completion percentage
+							numerator = c(numerator,sum(notNA_nicu)+sum(notNA_nonNicu))
+							denominator = c(denominator,(nrow(clinic_subset_nicu)*length(requiredFields_nicu)) + (nrow(clinic_subset_nonNicu)*length(requiredFields_nonNicu)))
+							numRecordsFromKickoff = c(numRecordsFromKickoff,nrow(clinic_subset_nicu)+nrow(clinic_subset_nonNicu))
+						}
+						#calculate totals
+						numerators_All = c(numerator,sum(numerator))
+						denominators_All = c(denominator,sum(denominator))
+						percentComplete = paste(round(numerators_All/denominators_All*100,0),"%",sep="")
+						numRecordsFromKickoff = c(numRecordsFromKickoff,sum(numRecordsFromKickoff))
+						
+						# make HTML table
+						cat(paste("<table border=1 id='myTable'>
+              <thead>
+                <tr>
+    							<th rowspan=2> 
+  								</th> 
+  								<th colspan=",length(clinicList),"> 
+  									Participating Center 
+  								</th> 
+  								<th rowspan=2> 
+  									Total 
+  								</th>
+  							</tr>
+              </thead>
+							<tbody>
+							<tr>
+                <th></th>
+						",sep=""))
+						for(clinic in 1:length(clinicList))
+						{
+							cat(paste("<th>",clinicList[clinic],"</th>",sep=""))
+						}
+						cat("</tr>")
+						cat("<tr><td>")
+						cat("Data % Completion of Required Fields")
+						cat("</td>")
+						for(percent in 1:length(percentComplete))
+						{
+							cat(paste("<td>",percentComplete[percent],"</td>",sep=""))
+						}
+						cat("</tr><tr><td>No. Records From Kick-off Date</td>")
+						for(num in 1:length(numRecordsFromKickoff))
+						{
+							cat(paste("<td>",numRecordsFromKickoff[num],"</td>",sep=""))
+						}
+						cat("</tr></tbody></table>")
+						
+					}else
+					{
+						numerator = sum(!is.na(subset(requiredFieldsSubset_nicu,select=requiredFields_nicu))) + sum(!is.na(subset(requiredFieldsSubset_nonNicu,select=requiredFields_nonNicu)))
+						denominator = (nrow(requiredFieldsSubset_nicu)*length(requiredFields_nicu)) + (nrow(requiredFieldsSubset_nonNicu)*length(requiredFields_nonNicu))
+						percentComplete = paste(round(numerator/denominator*100,0),"%",sep="")
+						cat(paste("Your center has an overall completion rate of ",percentComplete," (N=",nrow(requiredFieldsSubset_nicu)+nrow(requiredFieldsSubset_nonNicu)," records) since the kick-off date (September 2012). This percentage is calculated using the 19 required fields that are plotted in this section of the report. The fields plotted in the last two charts are only applicable for 
+                                                    infants that needed further stabilization or treatment after the initial resuscitation. Record entries that are non-missing are considered 'complete'. ",sep=""))
+					}
+														
+					
+					
+					
+
+					
+					# % completion by month
+					
+					h = 480					
+					w = 1250
+					title = "Data % Completion By Month"
+					
+					# chart 1
+					# start writing png
+					png('img/pchart_completion1.png',height=h,width=w)
+					
+					columnList = c('dob','pre_resusc_checklist','pre_resusc_briefing','post_resusc_briefing')
+					option = 1
+					lowerYlim = 30
+					pchart(rdata,columnList,title,option,USER,lowerYlim)										
+					# finish writing pdf
+					dev.off()
+					
+					# chart 2
+					png('img/pchart_completion2.png',height=h,width=w)
+					pchart(rdata,c('apgar_1','apgar_5','fio2_5','sao2_5'),title,1,USER,lowerYlim)
+					dev.off()
+                                        
+                                        # chart 4
+                                        png('img/pchart_completion4.png',height=h,width=w)
+                                        nicu_subset = subset(rdata,rdata$nicu=='1')
+                                        columnList = c('ega','birthweight','parents_commun','admit_temp','surfactant_eligible')
+					pchart(nicu_subset,columnList,title,1,USER,lowerYlim)
+					dev.off()
+					
+					# chart 3
+					png('img/pchart_completion3.png',height=h,width=w)
+					pchart(nicu_subset,c('iv_access_obtained','glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code','pco2_indicated'),title,1,USER,lowerYlim)
+					dev.off()
+				%>
+				<center><img src="img/pchart_completion1.png"></center>
+				<center><img src="img/pchart_completion2.png"></center>
+                                <br>
+                                <br>
+                                Note that the fields plotted in these next two charts are only applicable for infants that needed further stabilization or treatment after the initial resuscitation.
+                                <center><img src="img/pchart_completion4.png"></center>
+				<center><img src="img/pchart_completion3.png"></center>
+			</li>
+		</ol>
+		<!-- ###################################################################################   -->
+		<!-- ############################# 2.0 Pre-resuscitation ###############################   -->
+		<!-- ###################################################################################   -->
+		<li class="section page-break-before">
+                    <h2>Pre-resuscitation</h2></li>
+			<%
+				### 2.0 ###
+										
+				title = "Percent Pre-resuscitation Checklist/Briefing Completed"
+				
+				# start writing png
+				png('img/pchart_preresus.png',height=h,width=w)
+				
+				# Expand right side of clipping rect to make room for the legend
+				par(xpd=T, mar=par()$mar+c(0,7,0,7))
+				
+				# chart 1
+				pchart(rdata,c("pre_resusc_checklist","pre_resusc_briefing"),title,"2",USER,30)
+				
+				# end writing png
+				dev.off()
+				
+				# Restore default clipping rect
+				par(mar=c(5, 4, 4, 2) + 0.1)
+
+			%>
+			<center><img src="img/pchart_preresus.png"></center>
+		
+		<!-- ###################################################################################   -->
+		<!-- ########################### 3.0 Resuscitation #####################################   -->
+		<!-- ###################################################################################   -->
+		<li class="section page-break-before">
+                    <h2>Resuscitation</h2>
+			<ol>
+                        <!-- ########################## 3.1 Supplemental Oxygen Management #####################   -->
+                        <li><h3>Supplemental Oxygen Management</h3>
+                            Acceptable oxygen saturation levels are not clearly defined.  For this project, teams attempt to titrate supplemental O2 to achieve an SaO2 within the range reported for well infants at 5 minutes who required no supplemental O2. (Dawson, Pediatrics, 2010)  To facilitate titration of supplemental oxygen in infants requiring resuscitation, three sub-groups within the normoxic range for healthy infants at 5 minutes of life are identified in the following graph: near target-low, on target (NRP), and near target-high.<br><br>
+                                <ol>
+                                        <li><b>Scatter Plot of FiO2 and SaO2 for all cases since Statewide kickoff</b>
+                                        <ul>
+                                                <li>The following figure illustrates the number of records above target, on target, and below target. Each point represents an infant. Definitions concerning target range are as follows:
+                                                <ul>
+                                                        <li><b>Above NRP target</b> - SaO2 from 86-100% and FiO2 from 0.22-1.0 (excludes infants on room-air)</li>
+                                                        <li><b>Within NRP target</b> - SaO2 from 80-85%</li>
+                                                        <li><b>Below NRP target</b> - SaO2 from 0 to 79% and FiO2 from 0.21-0.99 (excludes infants who are already on maximal FiO2)</li>
+                                                </ul>
+                                                </li>
+                                                <%
+                                                        h = 600				
+                                                        w = 850
+
+
+                                                        # start writing png
+                                                        png('img/chart_fio2_sao2_rank.png',height=h,width=w)
+                                                        # grab all data AFTER KICKOFF DATE where sao2 and fio2 are not NA
+                                                        junk <- subset(rdata, !is.na(sao2_5) & !is.na(fio2_5) & as.Date(as.character(dob),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
+                                                        junk <- junk[order(junk$sao2_5),]
+                                                        #junk$new_id <- 1:nrow(junk)
+                                                        par(xpd=F,mar = c(5, 5, 2, 4)+0.1, las = 1)
+                                                        with(junk,{
+                                                                plot(fio2_5, sao2_5, ylab = "SaO2 @ 5 min", xlab = "FiO2 @ 5 min",
+                                                                xlim = c(.21, 1.0),
+                                                                ylim = c(0,100),
+                                                                pch=19,cex=.8,axes=FALSE)
+
+                                                        })
+                                                        axis(side = 1, at = c(.21,.3,.4,.5,.6,.7,.8,.9,1.0))
+                                                        axis(side = 2)
+                                                        box()
+                                                        #ON TARGET
+                                                        abline(h=80)
+                                                        abline(h=85)
+                                                        text(x=.21+(1-.21)/2,y=82.5,labels="ON TARGET")
+                                                        #rect(.20,86,.22,101)
+                                                        #above
+                                                        rect(.22,86,1,100)
+                                                        text(x=.385+.22,y=86+7,labels="ABOVE")
+                                                        #below
+                                                        rect(.21,0,.99,79)
+                                                        text(x=.22+(.99-.22)/2,y=(79/2),labels="BELOW")
+
+
+                                                        # end writing png
+                                                        dev.off()
+                                                %>
+                                        <center><img src="img/chart_fio2_sao2_rank.png"></center>
+
+
+                                        </ul>        
+                                        </li>
+                                        <br>
+                                        <br>
+
+<!--                                        <li class="page-break-before">Percent in Target Range<br><br>
+                                            <% 
+                                                h = 480				
+                                                w = 1250
+                                                # start writing png
+                                                png('img/pchart_targetRange.png',height=h,width=w)
+                                                columnList = c('fio2_2')
+                                                title = "Percent in Target Range"
+                                                option = 3
+                                                pchart(rdata,columnList,title,option,USER) 
+                                                
+                                                # end writing png
+                                                dev.off()
+                                                # Restore default clipping rect
+                                                par(mar=c(5, 4, 4, 2) + 0.1)
+                                            %>
+                                            <ul>
+                                                <li class="page-break-before"> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with an FiO2 greater than 0.21 and an SaO2 from 80-85%. (Records with an FiO2 of 1.0 are excluded.) The percentage is calculated by dividing the number of records within target range by the total number of records with an FiO2 greater than 0.21.
+                                                <br><center><img class="page-break-none" src="pchart_targetRange.png"></center></li>
+                                            </ul> 
+
+                                        </li>	-->
+                                        <li class="page-break-before"><b>Infants Within Approximate Transition Saturation Ranges (75% < SaO2 < 95%)</b><br><br>
+                                            <% 
+                                                h = 480				
+                                                w = 1250
+                                                # start writing png
+                                                png('img/pchart_oxygen1.png',height=h,width=w)
+                                                columnList = c('fio2_5')
+                                                title = "Infants Within Approximate Transition Ranges"
+                                                option = 6
+                                                pchart(rdata,columnList,title,option,USER) 
+
+                                                # end writing png
+                                                dev.off()
+                                                # Restore default clipping rect
+                                                par(mar=c(5, 4, 4, 2) + 0.1)
+                                            %>
+                                            <div class="page-break-none"> 
+                                            <ul>
+                                                <b>Definitions:</b>
+                                                <ul>
+                                                    <li><b>Percentage of Infants Within Approximate Transition Ranges</b>
+                                                        <ul>
+                                                            <li><b>Numerator</b> - 75% &lt; SaO2 &lt; 95%</li>
+                                                            <li><b>Denominator (n)</b> - all records where SaO2 and FiO2 were recorded excluding "Room air and above average" records (defined below)
+                                                        </ul>
+                                                    </li>
+                                                    <li> <b>Margin Counts</b>
+                                                        <ul>
+                                                            <li><b>Room air and above average</b> - Sa02 &ge; 95% and FiO2 = 0.21</li>
+                                                            <li><b>Missing SaO2 and/or FiO2</b> - SaO2 and/or FiO2 = NA</li>
+                                                        </ul>
+
+                                                    </li>
+                                                </ul>  
+                                                <br><center><img class="page-break-none" src="pchart_oxygen1.png"></center>
+                                               
+                                            </ul> 
+                                            </div>
+
+                                        </li>	
+                                        <li class="page-break-before"><b>Infants Receiving Supplemental Oxygen with an SaO2 within the NRP Target Range at 5 minutes of life</b><br><br>
+                                            <% 
+                                                h = 480				
+                                                w = 1250
+                                                # start writing png
+                                                png('img/pchart_oxygen2.png',height=h,width=w)
+                                                columnList = c('fio2_5')
+                                                title = "Infants Receiving Supplemental Oxygen Within 5 Minute NRP Target"
+                                                option = 7
+                                                pchart(rdata,columnList,title,option,USER) 
+
+                                                # end writing png
+                                                dev.off()
+                                                # Restore default clipping rect
+                                                par(mar=c(5, 4, 4, 2) + 0.1)
+                                            %>
+                                           <div class="page-break-none"> 
+                                            <ul>
+                                                <b>Definitions:</b>
+                                                <ul>
+                                                    <li><b>Percentage of Infants Receiving Supplemental Oxygen Within 5 Minute NRP Target</b>
+                                                        <ul>
+                                                            <li><b>Numerator</b> - 80% &lt; SaO2 &lt; 85%</li>
+                                                            <li><b>Denominator (n)</b> - all records where SaO2 and FiO2 were recorded AND FiO2 &gt; 0.21
+                                                        </ul>
+                                                    </li>
+                                                    <li> <b>Margin Counts</b>
+                                                        <ul>
+                                                            <li><b>Max O2 and below target</b> - Sa02 &lt; 85% and FiO2 = 1.0</li>
+                                                            <li><b>Missing SaO2 and/or FiO2</b> - SaO2 and/or FiO2 = NA</li>
+                                                        </ul>
+
+                                                    </li>
+                                                </ul>  
+                                                <br><center><img class="page-break-none" src="pchart_oxygen2.png"></center></li>
+                                            </ul> 
+                                           </div>
+
+                                        </li>	
+                                        <%
+                                            # grab all data AFTER KICK-OFF DATE where fio2 is not NA and is >.21(sao2 may be NA)
+                                            tempData = subset(rdata, !is.na(fio2_5) & fio2_5>.21 & !is.na(month) & as.Date(as.character(dob),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
+                                            months = seq(as.Date("2012-09-01"), Sys.Date(), by="1 month")
+                                            monthList = format(months,"%m/%Y")
+                                            denomList = c()
+                                            onTarget = c()
+
+
+                                            plotData = data.frame();
+                                            for(month in 1:length(monthList))
+                                            {
+                                                            monthSub = tempData[tempData$month==monthList[month],]
+
+                                                            # sao2 = NA
+                                                            sao2NA = sum(is.na(monthSub$sao2_5) )
+
+                                                            # max o2 and below range
+                                                            maxO2below = sum(monthSub$sao2_5<= 75 & monthSub$fio2_5==1.0 & !is.na(monthSub$sao2_5))
+
+                                                            # below range (SaO2 from 0-75% and FiO2 from 0.22-.99)
+                                                            belowNum = sum(monthSub$sao2_5>=0 & monthSub$sao2_5<=75 & !is.na(monthSub$sao2_5) & monthSub$fio2_5<=.99) 		
+
+                                                            # below target in range (SaO2 from 76%-79% and FiO2 from 0.22-1.0)
+                                                            belowInRangeNum = sum(monthSub$sao2_5>75 & monthSub$sao2_5<80 & !is.na(monthSub$sao2_5)) 	
+
+                                                            # on NRP target (SaO2 from 80-85% and FiO2 from 0.22-1.0)
+                                                            onNum = sum(monthSub$sao2_5>=80 & monthSub$sao2_5<=85 & !is.na(monthSub$sao2_5)) 
+
+                                                            # above target in range (SaO2 from 86-94% and FiO2 from 0.22-1.0)
+                                                            aboveInRangeNum = sum(monthSub$sao2_5>85 & monthSub$sao2_5<95 & !is.na(monthSub$sao2_5)) 
+
+                                                            # above range (SaO2 from 95-100% and FiO2 from 0.22-1.0)
+                                                            aboveNum = sum(monthSub$sao2_5>=95 & !is.na(monthSub$sao2_5)) 
+
+                                                            # These should be the same
+                                                            #print(nrow(monthSub))				
+                                                            #print(sao2NA+maxO2below+belowNum+belowInRangeNum+onNum+aboveInRangeNum+aboveNum)					
+
+                                                            denominator = sao2NA+maxO2below+belowNum+belowInRangeNum+onNum+aboveInRangeNum+aboveNum
+
+
+                                                            # max o2 and below range
+                                                            plotData[1,month] = maxO2below / denominator*100
+                                                            # below range 
+                                                            plotData[2,month] = belowNum / denominator*100
+                                                            # below target in range
+                                                            plotData[3,month] = belowInRangeNum / denominator*100
+                                                            # on NRP target
+                                                            plotData[4,month] = onNum / denominator*100
+                                                            # above target in range
+                                                            plotData[5,month] = aboveInRangeNum / denominator*100									
+                                                            # above range 
+                                                            plotData[6,month] = aboveNum / denominator*100
+                                                            # NA
+                                                            plotData[7,month] = sao2NA / denominator*100
+
+
+                                                            denomList = c(denomList,denominator)
+                                            }
+                                            colnames(plotData) = monthList
+                                            rownames(plotData) = c("Max O2 and Below Range", "Below Range","Below Target in Range","On NRP Target","Above Target in Range","Above Range","NA")
+
+                                            h = 600					
+                                            w = 1000
+                                            # start writing png
+                                            png('img/barchart_targetRange.png',height=h,width=w)
+                                            par(xpd=T, mar=par()$mar+c(0,7,5,12))
+
+                                            barPlotData = as.matrix(plotData)
+                                            b = barplot(barPlotData,
+                                                              main="Infants Receiving Supplemental Oxygen at 5 Minutes",
+                                                              col=c("gray","blue","light blue","green","pink","red","yellow"),
+                                                              xlab = "Month",
+                                                              ylab = "Percent"							  
+                                             )
+                                             box(lty=1,col='black')
+                                             #legendpos = ((tail(b,2)[2]-tail(b,2)[1]))*length(b)/3.5*-1
+                                             legend("topright",inset=c(-.3,0),rev(rownames(plotData)),fill=rev(c("gray","blue","light blue","green","pink","red","yellow")))
+                                             # add n at the bottom
+                                            mtext(side = 1, text = "Total No. Records (n):", at = 0.45, adj = 1, line = 4, cex = 0.85, font=2)
+                                            axis(side=1,at=b,labels=denomList,tick = FALSE,cex.axis=.85,line=3,font=2)
+                                            # add percentage labels if percentage >=5%
+                                            # Find the top y position of each block 
+                                            ypos <- apply(barPlotData, 2, cumsum)
+                                            # Move it downwards half the size of each block
+                                            ypos <- ypos - barPlotData/2
+
+                                            if(nrow(barPlotData)>0)
+                                            {
+                                                            for(row in 1:nrow(barPlotData))
+                                                            {
+                                                                            for(col in 1:ncol(barPlotData))
+                                                                            {
+                                                                                            if(!is.na(barPlotData[row,col])) 
+                                                                                            {
+                                                                                                if(!is.nan(barPlotData[row,col]) && round(barPlotData[row,col])>=5){
+                                                                                                            text(b[col],ypos[row,col],paste(round(barPlotData[row,col]),"%",sep=""))
+                                                                                                }
+
+                                                                                            }
+                                                                            }
+                                                            }
+                                            }
+
+
+                                            # add No. clinics participating at the top
+                                            if(USER == "state_user")
+                                            {
+                                                            clinicCount = c()
+                                                            for(month in 1:length(monthList))
+                                                            {
+                                                                            clinicCount = c(clinicCount,length(unique(rdata$clinic[rdata$month==monthList[month]])))
+                                                            }
+                                                            mtext(side = 3, text = "No. centers contributing data:", at = 0.0, adj = 1, line = 1, cex = 0.85,font=2)
+                                                             axis(side=3,at=b,labels=clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=0,font=2) 
+                                            }
+                                            # end writing png
+                                            dev.off()
+                                        %>
+                                        <li class="page-break-before"><b>Infants Receiving Supplemental Oxygen At 5 Minutes</b><br><br>
+                                            <ul>
+                                                <li> The following stacked bar chart displays the percentages of infants in different SaO2 ranges at 5 minutes. The denominator is all records with a non-missing FiO2 > 0.21. Definitions concerning the numerators are as follows: 
+                                                    <ul>
+                                                        <li><b>NA</b> - SaO2 is not recorded</li>
+                                                        <li><b>Above Range</b> - SaO2 from 95-100% and FiO2 from 0.22-1.0</li>
+                                                        <li><b>Above Target in Range</b> - SaO2 from 86-94% and FiO2 from 0.22-1.0</li>
+                                                        <li><b>On NRP Target</b> - SaO2 from 80-85% and FiO2 from 0.22-1.0</li>
+                                                        <li><b>Below Target in Range</b> - SaO2 from 76%-79% and FiO2 from 0.22-1.0</li>
+                                                        <li><b>Below Range</b> - SaO2 from 0-75% and FiO2 from 0.22-.99</li>
+                                                        <li><b>Max O2 and Below Range</b> - SaO2 from 0-75% and FiO2 = 1.0</li>
+                                                    </ul>
+                                                    <center><img class="page-break-none" src="barchart_targetRange.png"></center>
+                                                </li>
+                                            </ul>
+                                            
+                                        </li>
+                                        
+                                </ol>
+                        </li>
+				<!-- ########################## 3.2 Thermal Management #################################   -->
+				<li class="page-break-before"><h3>Thermal Management - Only Applicable to Infants Admitted to NICU</h3>
+					
+                                    <%
+                                            tempData = subset(nicu_subset,select=c("month","admit_temp"))
+                                            tempData_notNA = subset(tempData,!is.na(tempData$admit_temp))
+                                            #monthList = unique(rdata$month[!is.na(rdata$month)])
+                                            months = seq(as.Date("2012-05-01"), Sys.Date(), by="1 month")
+                                            monthList = format(months,"%m/%Y")
+                                            denomList = c()
+
+
+                                            plotData = data.frame();
+                                            for(month in 1:length(monthList))
+                                            {
+                                                    denominator = sum(tempData$month==monthList[month])
+                                                    # hypothermic (<36.0 C)
+                                                    plotData[1,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]<36) / denominator*100
+                                                    # cool (36 - <36.5)
+                                                    plotData[2,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]>=36 & tempData_notNA[,2][tempData_notNA$month==monthList[month]] < 36.5) / denominator*100
+                                                    # normothermic (36.5 - 37.5)
+                                                    plotData[3,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]>=36.5 & tempData_notNA[,2][tempData_notNA$month==monthList[month]] <= 37.5) / denominator*100
+
+                                                    # hyperthermic (>37.5)
+                                                    plotData[4,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]>37.5) / denominator*100
+                                                    # NA
+                                                    plotData[5,month] = sum(is.na(tempData[,2][tempData$month==monthList[month]])) / denominator*100
+
+                                                    denomList = c(denomList,denominator)
+                                            }
+                                            colnames(plotData) = monthList
+                                            rownames(plotData) = c("hypothermic (<36.0C)", "cool (36.0-36.4C)","normothermic (36.5-37.5C)","hyperthermic (>37.5C)","N/A")
+
+                                            h = 600					
+                                            w = 1000
+                                            # start writing png
+                                            png('img/barchart_admitTemp.png',height=h,width=w)
+                                            par(xpd=T, mar=par()$mar+c(0,7,5,12))
+
+                                            barPlotData = as.matrix(plotData)
+                                            b = barplot(barPlotData,
+                                                      main="Temperature of Admission to the NICU for Golden Hour Infants",
+                                                      col=c("blue","light blue","green","red","purple"),
+                                                      xlab = "Month",
+                                                      ylab = "Percent"							  
+                                             )
+                                             box(lty=1,col='black')
+                                             #legendpos = ((tail(b,2)[2]-tail(b,2)[1]))*length(b)/3.5*-1
+                                             legend("topright",inset=c(-.3,0),rev(rownames(plotData)),fill=rev(c("blue","light blue","green","red","purple")))
+                                             # add n at the bottom
+                                            mtext(side = 1, text = "Total No. Records (n):", at = 0.45, adj = 1, line = 4, cex = 0.85, font=2)
+                                            axis(side=1,at=b,labels=denomList,tick = FALSE,cex.axis=.85,line=3,font=2)
+                                            # add percentage labels if percentage >=5%
+                                            # Find the top y position of each block 
+                                            ypos <- apply(barPlotData, 2, cumsum)
+                                            # Move it downwards half the size of each block
+                                            ypos <- ypos - barPlotData/2
+
+                                            if(nrow(barPlotData)>0)
+                                            {
+                                                    for(row in 1:nrow(barPlotData))
+                                                    {
+                                                            for(col in 1:ncol(barPlotData))
+                                                            {
+                                                                    if(!is.na(barPlotData[row,col])) 
+                                                                    {
+                                                                        if(!is.nan(barPlotData[row,col]) && round(barPlotData[row,col])>=5){
+                                                                            text(b[col],ypos[row,col],paste(round(barPlotData[row,col]),"%",sep=""))
+                                                                        }
+                                                                    }
+                                                            }
+                                                    }
+                                            }
+
+
+                                            # add No. clinics participating at the top
+                                            if(USER == "state_user")
+                                            {
+                                                    clinicCount = c()
+                                                    for(month in 1:length(monthList))
+                                                    {
+                                                            clinicCount = c(clinicCount,length(unique(rdata$clinic[rdata$month==monthList[month]])))
+                                                    }
+                                                    mtext(side = 3, text = "No. centers contributing data:", at = 0.0, adj = 1, line = 1, cex = 0.85,font=2)
+                                                     axis(side=3,at=b,labels=clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=0,font=2) 
+                                            }
+
+                                            # end writing png
+                                            dev.off()
+
+                                            # Restore default clipping rect
+                                            par(mar=c(5, 4, 4, 2) + 0.1)
+                                    %>
+                                    <ol>
+                                        <li>Temperature of Admission to the NICU for Golden Hour Infants
+                                            <center><img class="page-break-none" src="barchart_admitTemp.png"></center>
+                                        </li>
+                                        <li class="page-break-before">Percent in Target Range<br><br>
+                                            <% 
+                                                h = 480				
+                                                w = 1250
+                                                # start writing png
+                                                png('img/pchart_thermalTargetRange.png',height=h,width=w)
+                                                columnList = c('admit_temp')
+                                                title = "Admission Temperature - Percent in Target Range"
+                                                option = 4
+                                                pchart(nicu_subset,columnList,title,option,USER) 
+                                                # end writing png
+                                                dev.off()
+                                            %>
+                                            <ul>
+                                                <li> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with a cool (36.0-36.4C) or normothermic (36.5-37.5C) admission temperature.<br>
+                                                 <center><img class="page-break-none" src="pchart_thermalTargetRange.png"></center> </li>
+
+                                            </ul> 
+
+
+                                        </li>						
+                                    </ol>
+				</li>
+			</ol>
+		</li>
+                <!-- ###################################################################################   -->
+                <!-- ####################### 4. Surfactant #############################################   -->
+                <!-- ###################################################################################   -->
+                 <li class="section page-break-before"><h2>Surfactant</h2>
+                    <%
+                    png('img/pchart_surfactant.png',height=h,width=w)
+                        pchart(nicu_subset,c('surfactant_eligible'),"Percent Surfactant Received",5,USER,0)
+                    dev.off()
+                    %>
+                    <ul>
+                        <li> The following figure illustrates the percent of records that received surfactant out of all the surfactant-eligible records. (Note: Eligibility as determined by local protocol)
+                        <center><img class="page-break-none" src="pchart_surfactant.png"></center>
+                    </ul>
+                
+                 </li>
+                <!-- ###################################################################################   -->
+                <!-- ########## 5. Age First IV Access Obtained (Minutes of Life) ######################   -->
+                <!-- ###################################################################################   -->
+                <li class="section page-break-before"><h2>Age First IV Access Obtained (Minutes of Life)</h2>
+                    <ul>
+                        <li> 
+                        <%
+                            xbarI_section(nicu_subset,USER,'iv_access_age')
+                            # add monthly mean xbar chart
+                            if(USER=="state_user"){
+                              png('img/mchart_firstaccessobtained.png',height=h,width=w-100)
+                                data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$iv_access_age))
+                                column = 'iv_access_age'
+                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
+                                ymax = max(my_qcc$limits)+5
+                                ymin = min(my_qcc$limits)-5
+                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
+                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,"2013-01-01","end","xbar",data_remove_nas,column)
+                              dev.off()
+                              cat('<center><img class="page-break-none" src="mchart_firstaccessobtained.png"></center>')
+                            }
+                            
+                        %>     
+                        
+                    </ul>
+                </li>
+                <!-- ###################################################################################   -->
+                <!-- ########## 6. Age Glucose IV Solution Started (Minutes of Life) ###################   -->
+                <!-- ###################################################################################   -->
+                <li class="section"><h2>Age Glucose IV Solution Started (Minutes of Life)</h2>
+                    <ul>
+                        <li> 
+                        <%
+                            xbarI_section(nicu_subset,USER,'glucose_iv_started_age')
+                            # add monthly mean xbar chart
+                            if(USER=="state_user"){
+                              png('img/mchart_glucose_iv_started_age.png',height=h,width=w-100)
+                                data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$glucose_iv_started_age))
+                                column = 'glucose_iv_started_age'
+                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
+                                ymax = max(my_qcc$limits)+5
+                                ymin = min(my_qcc$limits)-5
+                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
+                              dev.off()
+                              cat('<center><img class="page-break-none" src="img/mchart_glucose_iv_started_age.png"></center>')
+                            }
+                        %>                        
+                    </ul>
+                </li>
+                <!-- ###################################################################################   -->
+                <!-- ########## 7. Age Antibiotics Started (Minutes of Life) ###########################   -->
+                <!-- ###################################################################################   -->
+                <li class="section"><h2>Age Antibiotics Started (Minutes of Life)</h2>
+                    <ul>
+                        <li> 
+                        <%
+                            xbarI_section(nicu_subset,USER,'antibiotics_started')
+                            if(USER=="state_user"){
+                              png('img/mchart_antibiotics_started.png',height=h,width=w-100)
+                                data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$antibiotics_started))
+                                column = 'antibiotics_started'
+                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
+                                ymax = max(my_qcc$limits)+5
+                                ymin = min(my_qcc$limits)-5
+                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
+                              dev.off()
+                              cat('<center><img class="page-break-none" src="mchart_antibiotics_started.png"></center>')
+                            }
+                        %>                        
+                    </ul>
+                </li>
+                <!-- ###################################################################################   -->
+                <!-- ########## 8. PCO2 on first blood gas (mmHg) ###########################   -->
+                <!-- ###################################################################################   -->
+                <li class="section"><h2>PCO2 on first blood gas (mmHg)</h2>
+                    <ul>
+                        <li>
+                        <%
+                            xbarI_section(nicu_subset,USER,'pco2_value',yaxis_label='mmHg')
+                            if(USER=="state_user"){
+                              png('img/mchart_pco2_value.png',height=h,width=w-100)
+                                data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$pco2_value))
+                                column = 'pco2_value'
+                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
+                                ymax = max(my_qcc$limits)+5
+                                ymin = min(my_qcc$limits)-5
+                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
+                              dev.off()
+                              cat('<center><img class="page-break-none" src="mchart_pco2_value.png"></center>')
+                            }
+                        %>  
+                    </ul>
+                </li>
+                    
+                <!-- ###################################################################################   -->
+                <!-- ########## 9. Communication Phases ################################################   -->
+                <!-- ###################################################################################   -->
+                <li class="section page-break-before"><h2>Communication Phases</h2>
+                    <ul><li>The following figures illustrate the breakdown of communication phase completion for each month (starting from kick-off). Missing fields are represented as "N/A". All records are included, regardless of whether communication data has been entered. </li></ul>
+                    <%
+                        #pchartWithBars(rdata,'pre_resusc_checklist')
+                        #pchartWithBars(rdata,'pre_resusc_briefing')
+                        #pchartWithBars(rdata,'post_resusc_briefing')
+                        #pchartWithBars(rdata,'parents_commun')
+                        
+                        stackedBarChart(rdata=rdata,columnOfInterest='pre_resusc_checklist',chartTitle='Pre-resuscitation Checklist Completed?')
+                        stackedBarChart(rdata=rdata,columnOfInterest='pre_resusc_briefing',chartTitle=label(rdata)['pre_resusc_briefing'])
+                        stackedBarChart(rdata=rdata,columnOfInterest='post_resusc_briefing',chartTitle=label(rdata)['post_resusc_briefing'])
+                        stackedBarChart(rdata=nicu_subset,columnOfInterest='parents_commun',chartTitle=paste(label(nicu_subset)['parents_commun']," - Applies only to infants admitted to NICU",sep=""))
+                    %>
+                </li>
+                
+                <!-- ###################################################################################   -->
+                <!-- ########## 10. Summary of Optional Outcome Data Fields ################################################   -->
+                <!-- ###################################################################################   -->
+                <li class="section page-break-before"><h2>Summary of Optional Outcome Data Fields</h2>                  
+                    <%
+                        optional_fields = select=c('discharge_date','discharge_disp','oxygen_required','ivh3_4pvl','rop')
+                        optional_subset = subset(nicu_subset,select=c('dob',optional_fields))
+                        optional_subset$age_dod = as.Date(as.character(optional_subset$discharge_date),format="%m/%d/%y") - as.Date(as.character(optional_subset$dob),format="%m/%d/%y")
+                        denom = nrow(optional_subset)
+                        percent_dod = round(sum(!is.na(optional_subset$discharge_date))/denom*100)
+                        discharge_disp_count = sum(!is.na(optional_subset$discharge_disp))
+                        
+                        cat("<ul><li>Of <b>", denom,"</b> total record(s) admitted to the NICU, <b>", percent_dod,"%</b> have a discharge date recorded.</li>",sep="")
+                        cat("<li>For fields with a discharge date recorded, the average age at discharge was <b>", round(mean(optional_subset$age_dod,na.rm=TRUE)) ," (days)</b>.</li>",sep="")
+                        cat("<li>Of <b>",discharge_disp_count,"</b> case(s) with a discharge disposition reported:</li>",sep="")
+                        cat("<ul>
+                                <li><b>",round(sum(optional_subset$discharge_disp=="Home",na.rm=TRUE)/discharge_disp_count*100),"%</b> went home</li>
+                                <li><b>",round(sum(optional_subset$discharge_disp=="Transfer",na.rm=TRUE)/discharge_disp_count*100),"%</b> transferred</li>
+                                <li><b>",round(sum(optional_subset$discharge_disp=="Death",na.rm=TRUE)/discharge_disp_count*100),"%</b> died</li>
+                            </ul><br>",sep="")
+                        cat("<li>Additional discharge data include:
+                                <ul>
+                                    <li><b>",sum(!is.na(optional_subset$oxygen_required)),"</b> cases had Oxygen requirement data, of which <b>",sum(optional_subset$oxygen_required=="Yes",na.rm=TRUE),"%</b> were noted to have an oxygen requirement at 36 week CGA.</li>
+                                    <li><b>",sum(!is.na(optional_subset$ivh3_4pvl)),"</b> cases had IVH/PVL data, of which <b>",sum(optional_subset$ivh3_4pvl=="Yes",na.rm=TRUE),"%</b> were noted to have IVH 3 or 4/PVL at discharge.
+                                    <li><b>",sum(!is.na(optional_subset$rop)),"</b> cases had ROP data, of which <b>",sum(optional_subset$rop=="Yes",na.rm=TRUE),"%</b> were noted to have ROP requiring intervention.
+                                </ul>
+                            </li></ul>",sep="")
+                    %>
+                </li>
+	</ol>
+
+</body>
+</html>
