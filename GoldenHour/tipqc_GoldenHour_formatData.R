@@ -1,6 +1,7 @@
 # label data
 label(data$study_id)="Study ID"
-label(data$dob)="Babys DOB (MM/DD/YYYY)"
+label(data$mob)="Babys Month of Birth"
+label(data$yob)="Babys Year of Birth"
 label(data$ega)="Estimated gestational age (EGA) at \nbirth (no. of completed weeks)"
 label(data$pre_resusc_checklist)="Pre-resuscitation checklist completed?"
 label(data$pre_resusc_briefing)="Pre-resuscitation briefing performed?"
@@ -26,12 +27,19 @@ label(data$resp_support_code)="Respiratory support code at 60 min \nof life"
 label(data$pco2_indicated)="PCO2 on first blood gas indicated?"
 label(data$pco2_value)="PCO2 on first blood gas (mmHg)"
 label(data$parents_commun)="Communication with parents?"
-label(data$discharge_date)="OPTIONAL: Date of discharge (MM/DD/YYYY)"
+label(data$discharge_date_month)="OPTIONAL: Month of discharge"
+label(data$discharge_date_year)="OPTIONAL: Year of discharge"
 label(data$discharge_disp)="OPTIONAL: Disposition at discharge"
 label(data$oxygen_required)="OPTIONAL: Oxygen required at 36 weeks CGA?"
 label(data$ivh3_4pvl)="OPTIONAL: IVH 3 or 4/PVL?"
 label(data$rop)="OPTIONAL: ROP requiring intervention?"
 label(data$golden_hour_complete)="Complete?"
+
+#fake the dob and dod
+mob_num = regmatches(data$mob, gregexpr("(?<=\\().*?(?=\\))", data$mob, perl=T))
+data$dob_fake = as.Date(paste(data$yob,"-",mob_num,"-",1,sep=""))
+mod_num = regmatches(data$discharge_date_month, gregexpr("(?<=\\().*?(?=\\))", data$discharge_date_month, perl=T))
+data$discharge_date_fake = as.Date(paste(data$discharge_date_year,"-",mod_num,"-",1,sep=""))
 
 #############################################################################
 # NOTE: "data" data frame object will already exist in the workspace image
@@ -57,26 +65,16 @@ hospdata$clinic = as.numeric(gsub("-[0-9a-zA-Z]+", "", hospdata$study_id))
 hospdata$record = as.numeric(gsub("[0-9a-zA-Z]+-", "", hospdata$study_id))
 
 #order data by dob, record, clinic
-# figure out if data is in Y-m-d format or m/d/y format
-if(grep("-",data$dob[1]))
-{
-	myformat = "%Y-%m-%d"
-}else
-	myformat = "%m/%d/%y"
-rdata = hospdata[with(hospdata,order(as.Date(as.character(dob),format=myformat),record,clinic)) , ]
-# format rdata dob
-rdata$dob = format(as.Date(as.character(rdata$dob),format=myformat),"%m/%d/%y")
-label(rdata$dob)="Babys DOB (MM/DD/YYYY)"
-rdata$discharge_date = format(as.Date(as.character(rdata$discharge_date),format=myformat),"%m/%d/%y")
-label(rdata$discharge_date)="OPTIONAL: Date of discharge (MM/DD/YYYY)"
+rdata = hospdata[with(hospdata,order(as.Date(as.character(dob_fake)),record,clinic)) , ]
+
+# format rdata fake dob
+rdata$dob_fake = format(as.Date(as.character(rdata$dob_fake)),"%m/%d/%y")
+label(rdata$dob_fake)="Babys Fake DOB (MM/01/YY)"
+rdata$discharge_date_fake = format(as.Date(as.character(rdata$discharge_date_fake)),"%m/%d/%y")
+label(rdata$discharge_date_fake)="Fake Date of discharge (MM/01/YY)"
 
 
 
 #add month column (calculated using dob)
-colNum = ncol(rdata)+1
-for(row in 1:nrow(rdata))
-{
-	rdata[row,colNum] = format(as.Date(as.character(rdata$dob[row]),format="%m/%d/%y"), format="%m/%Y")
-}
-#name month column
-colnames(rdata)[colNum] = "month"
+rdata$month = format(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y"), format="%m/%Y")
+
