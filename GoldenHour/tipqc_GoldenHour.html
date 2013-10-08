@@ -24,15 +24,6 @@
       $('#myTable').dataTable();
     });  
   </script>
-  <%
-    # create img file if not exists
-    if (!file.exists("img")){
-      dir.create(file.path(getwd(), "img"))
-    }else{
-      unlink("img",TRUE,TRUE)
-      dir.create(file.path(getwd(), "img"))
-    }
-  %>
     <center>
         <h1>- TIPQC Golden Hour Report -</h1>
         <%=
@@ -289,7 +280,7 @@
 					
 					# chart 1
 					# start writing png
-					png('img/pchart_completion1.png',height=h,width=w)
+					png('pchart_completion1.png',height=h,width=w)
 					
 					columnList = c('mob','yob','pre_resusc_checklist','pre_resusc_briefing','post_resusc_briefing')
 					option = 1
@@ -299,29 +290,29 @@
 					dev.off()
 					
 					# chart 2
-					png('img/pchart_completion2.png',height=h,width=w)
+					png('pchart_completion2.png',height=h,width=w)
 					pchart(rdata,c('apgar_1','apgar_5','fio2_5','sao2_5'),title,1,USER,lowerYlim)
 					dev.off()
                                         
                                         # chart 4
-                                        png('img/pchart_completion4.png',height=h,width=w)
+                                        png('pchart_completion4.png',height=h,width=w)
                                         nicu_subset = subset(rdata,rdata$nicu=='1')
                                         columnList = c('ega','birthweight','parents_commun','admit_temp','surfactant_eligible')
 					pchart(nicu_subset,columnList,title,1,USER,lowerYlim)
 					dev.off()
 					
 					# chart 3
-					png('img/pchart_completion3.png',height=h,width=w)
+					png('pchart_completion3.png',height=h,width=w)
 					pchart(nicu_subset,c('iv_access_obtained','glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code','pco2_indicated'),title,1,USER,lowerYlim)
 					dev.off()
 				%>
-				<center><img src="img/pchart_completion1.png"></center>
-				<center><img src="img/pchart_completion2.png"></center>
+				<center><img src="pchart_completion1.png"></center>
+				<center><img src="pchart_completion2.png"></center>
                                 <br>
                                 <br>
                                 Note that the fields plotted in these next two charts are only applicable for infants that needed further stabilization or treatment after the initial resuscitation.
-                                <center><img src="img/pchart_completion4.png"></center>
-				<center><img src="img/pchart_completion3.png"></center>
+                                <center><img src="pchart_completion4.png"></center>
+				<center><img src="pchart_completion3.png"></center>
 			</li>
 		</ol>
 		<!-- ###################################################################################   -->
@@ -335,7 +326,7 @@
 				title = "Percent Pre-resuscitation Checklist/Briefing Completed"
 				
 				# start writing png
-				png('img/pchart_preresus.png',height=h,width=w)
+				png('pchart_preresus.png',height=h,width=w)
 				
 				# Expand right side of clipping rect to make room for the legend
 				par(xpd=T, mar=par()$mar+c(0,7,0,7))
@@ -350,7 +341,7 @@
 				par(mar=c(5, 4, 4, 2) + 0.1)
 
 			%>
-			<center><img src="img/pchart_preresus.png"></center>
+			<center><img src="pchart_preresus.png"></center>
 		
 		<!-- ###################################################################################   -->
 		<!-- ########################### 3.0 Resuscitation #####################################   -->
@@ -377,7 +368,7 @@
 
 
                                                         # start writing png
-                                                        png('img/chart_fio2_sao2_rank.png',height=h,width=w)
+                                                        png('chart_fio2_sao2_rank.png',height=h,width=w)
                                                         # grab all data AFTER KICKOFF DATE where sao2 and fio2 are not NA
                                                         junk <- subset(rdata, !is.na(sao2_5) & !is.na(fio2_5) & as.Date(as.character(dob_fake),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
                                                         junk <- junk[order(junk$sao2_5),]
@@ -409,7 +400,7 @@
                                                         # end writing png
                                                         dev.off()
                                                 %>
-                                        <center><img src="img/chart_fio2_sao2_rank.png"></center>
+                                        <center><img src="chart_fio2_sao2_rank.png"></center>
 
 
                                         </ul>        
@@ -422,7 +413,7 @@
                                                 h = 480				
                                                 w = 1250
                                                 # start writing png
-                                                png('img/pchart_targetRange.png',height=h,width=w)
+                                                png('pchart_targetRange.png',height=h,width=w)
                                                 columnList = c('fio2_2')
                                                 title = "Percent in Target Range"
                                                 option = 3
@@ -435,7 +426,7 @@
                                             %>
                                             <ul>
                                                 <li class="page-break-before"> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with an FiO2 greater than 0.21 and an SaO2 from 80-85%. (Records with an FiO2 of 1.0 are excluded.) The percentage is calculated by dividing the number of records within target range by the total number of records with an FiO2 greater than 0.21.
-                                                <br><center><img class="page-break-none" src="img/pchart_targetRange.png"></center></li>
+                                                <br><center><img class="page-break-none" src="pchart_targetRange.png"></center></li>
                                             </ul> 
 
                                         </li>	-->
@@ -444,7 +435,7 @@
                                                 h = 480				
                                                 w = 1250
                                                 # start writing png
-                                                png('img/pchart_oxygen1.png',height=h,width=w)
+                                                png('pchart_oxygen1.png',height=h,width=w)
                                                 columnList = c('fio2_5')
                                                 title = "Infants Within Approximate Transition Ranges"
                                                 option = 6
@@ -473,7 +464,7 @@
 
                                                     </li>
                                                 </ul>  
-                                                <br><center><img class="page-break-none" src="img/pchart_oxygen1.png"></center>
+                                                <br><center><img class="page-break-none" src="pchart_oxygen1.png"></center>
                                                
                                             </ul> 
                                             </div>
@@ -484,7 +475,7 @@
                                                 h = 480				
                                                 w = 1250
                                                 # start writing png
-                                                png('img/pchart_oxygen2.png',height=h,width=w)
+                                                png('pchart_oxygen2.png',height=h,width=w)
                                                 columnList = c('fio2_5')
                                                 title = "Infants Receiving Supplemental Oxygen Within 5 Minute NRP Target"
                                                 option = 7
@@ -513,7 +504,7 @@
 
                                                     </li>
                                                 </ul>  
-                                                <br><center><img class="page-break-none" src="img/pchart_oxygen2.png"></center></li>
+                                                <br><center><img class="page-break-none" src="pchart_oxygen2.png"></center></li>
                                             </ul> 
                                            </div>
 
@@ -584,7 +575,7 @@
                                             h = 600					
                                             w = 1000
                                             # start writing png
-                                            png('img/barchart_targetRange.png',height=h,width=w)
+                                            png('barchart_targetRange.png',height=h,width=w)
                                             par(xpd=T, mar=par()$mar+c(0,7,5,12))
 
                                             barPlotData = as.matrix(plotData)
@@ -694,7 +685,7 @@
                                             h = 600					
                                             w = 1000
                                             # start writing png
-                                            png('img/barchart_admitTemp.png',height=h,width=w)
+                                            png('barchart_admitTemp.png',height=h,width=w)
                                             par(xpd=T, mar=par()$mar+c(0,7,5,12))
 
                                             barPlotData = as.matrix(plotData)
@@ -760,7 +751,7 @@
                                                 h = 480				
                                                 w = 1250
                                                 # start writing png
-                                                png('img/pchart_thermalTargetRange.png',height=h,width=w)
+                                                png('pchart_thermalTargetRange.png',height=h,width=w)
                                                 columnList = c('admit_temp')
                                                 title = "Admission Temperature - Percent in Target Range"
                                                 option = 4
@@ -770,7 +761,7 @@
                                             %>
                                             <ul>
                                                 <li> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with a cool (36.0-36.4C) or normothermic (36.5-37.5C) admission temperature.<br>
-                                                 <center><img class="page-break-none" src="img/pchart_thermalTargetRange.png"></center> </li>
+                                                 <center><img class="page-break-none" src="pchart_thermalTargetRange.png"></center> </li>
 
                                             </ul> 
 
@@ -785,13 +776,13 @@
                 <!-- ###################################################################################   -->
                  <li class="section page-break-before"><h2>Surfactant</h2>
                     <%
-                    png('img/pchart_surfactant.png',height=h,width=w)
+                    png('pchart_surfactant.png',height=h,width=w)
                         pchart(nicu_subset,c('surfactant_eligible'),"Percent Surfactant Received",5,USER,0)
                     dev.off()
                     %>
                     <ul>
                         <li> The following figure illustrates the percent of records that received surfactant out of all the surfactant-eligible records. (Note: Eligibility as determined by local protocol)
-                        <center><img class="page-break-none" src="img/pchart_surfactant.png"></center>
+                        <center><img class="page-break-none" src="pchart_surfactant.png"></center>
                     </ul>
                 
                  </li>
@@ -805,7 +796,7 @@
                             xbarI_section(nicu_subset,USER,'iv_access_age')
                             # add monthly mean xbar chart
                             if(USER=="state_user"){
-                              png('img/mchart_firstaccessobtained.png',height=h,width=w-100)
+                              png('mchart_firstaccessobtained.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$iv_access_age))
                                 column = 'iv_access_age'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
@@ -815,7 +806,7 @@
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,"2013-01-01","end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="img/mchart_firstaccessobtained.png"></center>')
+                              cat('<center><img class="page-break-none" src="mchart_firstaccessobtained.png"></center>')
                             }
                             
                         %>     
@@ -832,7 +823,7 @@
                             xbarI_section(nicu_subset,USER,'glucose_iv_started_age')
                             # add monthly mean xbar chart
                             if(USER=="state_user"){
-                              png('img/mchart_glucose_iv_started_age.png',height=h,width=w-100)
+                              png('mchart_glucose_iv_started_age.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$glucose_iv_started_age))
                                 column = 'glucose_iv_started_age'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
@@ -841,7 +832,7 @@
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="img/mchart_glucose_iv_started_age.png"></center>')
+                              cat('<center><img class="page-break-none" src="mchart_glucose_iv_started_age.png"></center>')
                             }
                         %>                        
                     </ul>
@@ -855,7 +846,7 @@
                         <%
                             xbarI_section(nicu_subset,USER,'antibiotics_started')
                             if(USER=="state_user"){
-                              png('img/mchart_antibiotics_started.png',height=h,width=w-100)
+                              png('mchart_antibiotics_started.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$antibiotics_started))
                                 column = 'antibiotics_started'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
@@ -864,7 +855,7 @@
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="img/mchart_antibiotics_started.png"></center>')
+                              cat('<center><img class="page-break-none" src="mchart_antibiotics_started.png"></center>')
                             }
                         %>                        
                     </ul>
@@ -878,7 +869,7 @@
                         <%
                             xbarI_section(nicu_subset,USER,'pco2_value',yaxis_label='mmHg')
                             if(USER=="state_user"){
-                              png('img/mchart_pco2_value.png',height=h,width=w-100)
+                              png('mchart_pco2_value.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$pco2_value))
                                 column = 'pco2_value'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
@@ -887,7 +878,7 @@
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="img/mchart_pco2_value.png"></center>')
+                              cat('<center><img class="page-break-none" src="mchart_pco2_value.png"></center>')
                             }
                         %>  
                     </ul>
