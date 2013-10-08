@@ -28,6 +28,9 @@
     # create img file if not exists
     if (!file.exists("img")){
       dir.create(file.path(getwd(), "img"))
+    }else{
+      unlink("img",TRUE,TRUE)
+      dir.create(file.path(getwd(), "img"))
     }
   %>
     <center>
@@ -66,124 +69,7 @@
     <ol>
         <li class="section"><h2>Data Quality</h2>
             <ol>
-                <!-- ################### 1.1 Days since the 'most recent date' captured in REDCap ##################   -->
-                <li> <h3>Days since the 'most recent date' captured in REDCap</h3>
-                    <ul>
-                        <li>
-                            <% if(USER != 'state_user'){
-                                        mySubset = subset(rdata,!is.na(rdata$dob))
-                                        mySubset$lag = as.numeric(sub("Time difference of","",Sys.Date()-as.Date(as.character(mySubset$dob),format="%m/%d/%y"),fixed=TRUE))
-                                        mySubset= subset(mySubset,mySubset$lag>=0)
-                                        mylag = min(mySubset$lag)
-                                        cat(paste(mylag," days",sep=""))
-                                    } else
-                                    {	
-
-                                        # get data lag for each clinic
-                                        tmp = subset(rdata,select=c('clinic','dob'))
-                                        tmp$lag = as.numeric(sub("Time difference of","",Sys.Date()-as.Date(as.character(tmp$dob),format="%m/%d/%y"),fixed=TRUE))
-                                        tmp = subset(tmp,!is.na(tmp$clinic) & !is.na(tmp$lag) & tmp$lag>=0)
-                                        
-                                        clinicList = unique(tmp$clinic)
-                                        boxPlotPoints = c()
-                                        #mostRecentDOB = c()
-                                        for(clinic in 1:length(clinicList))
-                                        {                                         
-                                            # subset the data by the given clinic
-                                            clinic_subset = tmp[tmp$clinic==clinicList[clinic],]
-
-                                            # get the last dob for given subset							
-                                            dataLagInDays = tail(clinic_subset$lag,1)
-                                            #mostRecentDOB = c(mostRecentDOB,as.Date(tail(as.character(clinic_subset$dob),1),format="%m/%d/%y"))
-                                            boxPlotPoints = c(boxPlotPoints,as.numeric(dataLagInDays))
-                                        }
-                                        junk3 = summary(boxPlotPoints)
-
-                                        # start writing png
-                                        h = 250					
-                                        w = 800
-                                        png('img/boxplot_dataLag.png',height=h,width=w)
-
-                                        # mgp 1-distance of the axis labels or titles from the axes, 2-distance of the tick mark labels from the axes, 3-distance of the tick mark symbols from the axes.
-                                        # mar->c(bottom, left, top, right)
-                                        par(mar = c(10, 1, 1, 1), cex.axis=.8, mgp = c(8, 0.75, 0), font.lab = 2, las = 3)
-                                        if(min(boxPlotPoints)<0)
-                                        {
-                                            ymin = min(boxPlotPoints)
-                                        }else
-                                        {
-                                            ymin = 0
-                                        }
-
-
-                                        boxplot(boxPlotPoints, horizontal = TRUE, ylim = c(ymin, max(boxPlotPoints)), axes = FALSE, xlab = "\nDays since 'most recent date' captured in REDCap")
-
-                                    # label 0 on x axis
-                                    axis(side=1,at=0,labels=0) 
-                                    #label five num summary on x axis
-                                    axis(side=1,at=junk3,labels=round(junk3,1),hadj=1) 
-
-                                    # add min, max, etc labels
-                                    # if, for example, the min and the 25th qu. are the same, stagger the label
-                                    five_num_sum_labels = c("Min", "25th", "Median", "Mean", "75th", "Max")
-
-                                    myVal = c()
-                                            myLab = c()
-                                            v=1
-                                            l=1
-                                            i=1
-                                            alreadySet = c()
-
-                                            for(i in 1:length(junk3))
-                                            {
-                                                    if(!(i %in% alreadySet))
-                                                    {
-                                                            myLab[l] = five_num_sum_labels[i]
-                                                            myVal[v] = junk3[i]
-                                                            for(j in 1:length(junk3))
-                                                            {
-                                                                    if(i!=j & junk3[i]==junk3[j])
-                                                                    {
-                                                                            myLab[l] = paste(myLab[l],", ",five_num_sum_labels[j],sep="")
-                                                                            alreadySet = c(alreadySet,j)			
-                                                                    }
-                                                            }
-                                                            l = l+1
-                                                            v = v+1
-                                                    }
-
-                                            }
-
-                                            axis(side=1,at=myVal,labels=myLab,font.axis=2,line=2,tick=FALSE,hadj=1)
-
-                                    # add the point for the mean
-                                    points(x = junk3["Mean"], y = 1, pch = 19)
-
-                                    # add x(s) for the actual points for each clinic
-                                    randomJitterPoints = runif(length(boxPlotPoints),0.75,1.25)
-                                    points(x=boxPlotPoints,y=randomJitterPoints,pch=4,col="blue",cex=1.5)
-
-                                            box()
-                                            box("figure")
-
-                                            dev.off()
-
-                                            rm(junk3)
-                                            #par(oldpar)
-                                            explanationSentence = paste("The following (boxplot) figure illustrates the distribution of the numbers of days since the 'most recent date' captured in REDCap for each participating center (ie, as of 'today', ", format(thisreport, format = "%B %d, %Y"),"). The 'most recent date' is defined as the infant's date of birth. This figure considers data from N = ", length(clinicList), " participating centers. The blue X's represent the data lag for an individual center.") 
-                                            cat(explanationSentence)
-                                            
-                                    }
-
-
-
-                            %>
-                            </li>
-                        </ul>
-                        <% if(USER == 'state_user') cat("<br><center><img src='img/boxplot_dataLag.png'></center><br>") %>
-
-
-                    </li>
+                
                     <!-- ############################## 1.2 Data Descriptives #################################   -->
                     <li><h3>Data Descriptives</h3>
                         <ul>
@@ -220,25 +106,25 @@
                             clinicList = unique(rdata$clinic)
 
                             myTable = rbind(
-                                    dataChecks('dob',USER,rdata,c('study_id','dob'),clinicList),
-                                    dataChecks('ega',USER,rdata_nicu,c('study_id','dob','ega'),clinicList),
-                                    dataChecks('apgar',USER,rdata_nicu,c('study_id','dob','apgar_1','apgar_5','apgar_10'),clinicList),
-                                    dataChecks('fio2',USER,rdata_nicu,c('study_id','dob','fio2_5'),clinicList),
-                                    dataChecks('sao2',USER,rdata_nicu,c('study_id','dob','sao2_5'),clinicList),
-                                    dataChecks('dod',USER,rdata_nicu,c('study_id','dob','discharge_date'),clinicList)
+                                    dataChecks('dob',USER,rdata,c('study_id','mob','yob'),clinicList),
+                                    dataChecks('ega',USER,rdata_nicu,c('study_id','mob','yob','ega'),clinicList),
+                                    dataChecks('apgar',USER,rdata_nicu,c('study_id','mob','yob','apgar_1','apgar_5','apgar_10'),clinicList),
+                                    dataChecks('fio2',USER,rdata_nicu,c('study_id','mob','yob','fio2_5'),clinicList),
+                                    dataChecks('sao2',USER,rdata_nicu,c('study_id','mob','yob','sao2_5'),clinicList),
+                                    dataChecks('dod',USER,rdata_nicu,c('study_id','mob','yob','discharge_date_month','discharge_date_year'),clinicList)
                             )
-
+                     
                             if(USER == "state_user")
                             {
 
                                     clinicList = c(unique(rdata$clinic))
                                     clinicList = clinicList[order(clinicList)]
-                                    rowLabels = c(paste("A date of birth that is missing, occurring before 5/1/2012, or occurring after today (",format(Sys.time(), "%B %d, %Y", usetz = TRUE),")",sep=""),
+                                    rowLabels = c("A month/year of birth that is missing, occurring before May 2012, or occurring in the future",
                                                         "A missing gestational age at delivery (if admitted to NICU)",
                                                         "An APGAR score outside of the 0-10 range (if admitted to NICU)",
                                                         "An FiO2 score outside of the 0.21-1.0 range (if admitted to NICU)",
                                                         "An SaO2 score outside of the 0-100% range (if admitted to NICU)",
-                                                        "A date of discharge occurring before date of birth, >1 year after birth, or after today (if admitted to NICU)")
+                                                        "A month/year of discharge occurring before month/year of birth, >1 year after birth, or in the future (if admitted to NICU)")
                                     #myxtable = print(xtable(myTable),type="html")
                                     cat(paste("<table border=1>
                                                     <tr>
@@ -287,41 +173,39 @@
                                     cat("</table>")
                             }
 
-                            # remove records with missing dob, since that messes up everything past this point
+                            # remove records with missing mob, since that messes up everything past this point
                             rdata = subset(rdata,!is.na(rdata$month))
                             # remove records where dob occurs before pilot date (05/01/12) or after today
-                            rdata = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")<Sys.Date())
-                            rdata = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>as.Date("2012-05-01"))
-
+                            rdata = subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")<=Sys.Date())
+                            rdata = subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")>=as.Date("2012-05-01"))
+                            
+                            
+  
                         %>
-                        <span class="page-break-none"><h3><i>Note: From this point forward, records with a date of birth that is missing or outside the range of May 01, 2012 - <%=format(thisreport, format = "%B %d, %Y")%> are excluded from analysis. </i></h3></span></li>
+                        <span class="page-break-none"><h3><i>Note: From this point forward, records with a month/year of birth that is missing or outside the range of May 2012 - <%=format(thisreport, format = "%B %Y")%> are excluded from analysis. </i></h3></span></li>
 			<% if(USER != "state_user") cat("</ul>") %>
 			<!-- ############################## 1.4 Data Completion #################################   -->
 			<li class="page-break-before"><h3>Data Completion</h3>
 				<%	
 					# table of summary of completion across 19 fields
-					requiredFields_nicu = c('dob','ega','pre_resusc_checklist','pre_resusc_briefing','apgar_1',
+					requiredFields_nicu = c('mob','yob','ega','pre_resusc_checklist','pre_resusc_briefing','apgar_1',
 								'apgar_5','fio2_5','sao2_5','post_resusc_briefing','birthweight',
 								'admit_temp','surfactant_eligible','iv_access_obtained',
 								'glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code',
 								'pco2_indicated','parents_commun')
-                                        requiredFields_nonNicu = c('dob','pre_resusc_checklist','pre_resusc_briefing', 'post_resusc_briefing', 
-                                                                'apgar_1','apgar_5','fio2_5','sao2_5')
+          requiredFields_nonNicu = c('mob','yob','pre_resusc_checklist','pre_resusc_briefing', 'post_resusc_briefing', 
+                'apgar_1','apgar_5','fio2_5','sao2_5')
                         
 					# subset of required fields from kick-off (9/2012)
-					requiredFieldsSubset_nicu = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="1",select=c('clinic',requiredFields_nicu))
-                                        requiredFieldsSubset_nonNicu = subset(rdata,as.Date(as.character(rdata$dob),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="0",select=c('clinic',requiredFields_nonNicu))
-                                        
-                                        
-					#table(is.na(requiredFieldsSubset[,6]),requiredFieldsSubset$clinic)
-					
+					requiredFieldsSubset_nicu = subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="1",select=c('clinic',requiredFields_nicu))
+          requiredFieldsSubset_nonNicu = subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")>=as.Date("2012-09-01") & rdata$nicu=="0",select=c('clinic',requiredFields_nonNicu))					
 					
 					if(USER=="state_user")
 					{
 						cat(paste("The following table depicts the percent completion of all required fields for each participating center from the kick-off date (September 2012).
-                                                            Record entries that are non-missing are considered 'complete'.
-                                                            The required fields are the ",length(requiredFields_nicu)," fields plotted in this section of the report.
-                                                            The fields plotted in the last two charts are only applicable for infants that needed further stabilization or treatment after the initial resuscitation.<br><br> ",sep=''))
+              Record entries that are non-missing are considered 'complete'.
+              The required fields are the ",length(requiredFields_nicu)," fields plotted in this section of the report.
+              The fields plotted in the last two charts are only applicable for infants that needed further stabilization or treatment after the initial resuscitation.<br><br> ",sep=''))
 						numerator = c()
 						denominator = c()
 						numRecordsFromKickoff = c()
@@ -329,13 +213,13 @@
 						{
 							
 							myClinic = clinicList[clinic]
-                                                        # admitted to nicu
+              # admitted to nicu
 							clinic_subset_nicu = subset(requiredFieldsSubset_nicu,requiredFieldsSubset_nicu$clinic==myClinic,select=requiredFields_nicu)
 							notNA_nicu = !is.na(clinic_subset_nicu)
-                                                        # not admitted to nicu
-                                                        clinic_subset_nonNicu = subset(requiredFieldsSubset_nonNicu,requiredFieldsSubset_nonNicu$clinic==myClinic,select=requiredFields_nonNicu)
+              # not admitted to nicu
+              clinic_subset_nonNicu = subset(requiredFieldsSubset_nonNicu,requiredFieldsSubset_nonNicu$clinic==myClinic,select=requiredFields_nonNicu)
 							notNA_nonNicu = !is.na(clinic_subset_nonNicu)
-                                                        # calculate completion percentage
+              # calculate completion percentage
 							numerator = c(numerator,sum(notNA_nicu)+sum(notNA_nonNicu))
 							denominator = c(denominator,(nrow(clinic_subset_nicu)*length(requiredFields_nicu)) + (nrow(clinic_subset_nonNicu)*length(requiredFields_nonNicu)))
 							numRecordsFromKickoff = c(numRecordsFromKickoff,nrow(clinic_subset_nicu)+nrow(clinic_subset_nonNicu))
@@ -388,7 +272,7 @@
 						numerator = sum(!is.na(subset(requiredFieldsSubset_nicu,select=requiredFields_nicu))) + sum(!is.na(subset(requiredFieldsSubset_nonNicu,select=requiredFields_nonNicu)))
 						denominator = (nrow(requiredFieldsSubset_nicu)*length(requiredFields_nicu)) + (nrow(requiredFieldsSubset_nonNicu)*length(requiredFields_nonNicu))
 						percentComplete = paste(round(numerator/denominator*100,0),"%",sep="")
-						cat(paste("Your center has an overall completion rate of ",percentComplete," (N=",nrow(requiredFieldsSubset_nicu)+nrow(requiredFieldsSubset_nonNicu)," records) since the kick-off date (September 2012). This percentage is calculated using the 19 required fields that are plotted in this section of the report. The fields plotted in the last two charts are only applicable for 
+						cat(paste("Your center has an overall completion rate of ",percentComplete," (N=",nrow(requiredFieldsSubset_nicu)+nrow(requiredFieldsSubset_nonNicu)," records) since the kick-off date (September 2012). This percentage is calculated using the ",length(requiredFields_nicu)," required fields that are plotted in this section of the report. The fields plotted in the last two charts are only applicable for 
                                                     infants that needed further stabilization or treatment after the initial resuscitation. Record entries that are non-missing are considered 'complete'. ",sep=""))
 					}
 														
@@ -407,7 +291,7 @@
 					# start writing png
 					png('img/pchart_completion1.png',height=h,width=w)
 					
-					columnList = c('dob','pre_resusc_checklist','pre_resusc_briefing','post_resusc_briefing')
+					columnList = c('mob','yob','pre_resusc_checklist','pre_resusc_briefing','post_resusc_briefing')
 					option = 1
 					lowerYlim = 30
 					pchart(rdata,columnList,title,option,USER,lowerYlim)										
@@ -495,7 +379,7 @@
                                                         # start writing png
                                                         png('img/chart_fio2_sao2_rank.png',height=h,width=w)
                                                         # grab all data AFTER KICKOFF DATE where sao2 and fio2 are not NA
-                                                        junk <- subset(rdata, !is.na(sao2_5) & !is.na(fio2_5) & as.Date(as.character(dob),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
+                                                        junk <- subset(rdata, !is.na(sao2_5) & !is.na(fio2_5) & as.Date(as.character(dob_fake),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
                                                         junk <- junk[order(junk$sao2_5),]
                                                         #junk$new_id <- 1:nrow(junk)
                                                         par(xpd=F,mar = c(5, 5, 2, 4)+0.1, las = 1)
@@ -551,7 +435,7 @@
                                             %>
                                             <ul>
                                                 <li class="page-break-before"> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with an FiO2 greater than 0.21 and an SaO2 from 80-85%. (Records with an FiO2 of 1.0 are excluded.) The percentage is calculated by dividing the number of records within target range by the total number of records with an FiO2 greater than 0.21.
-                                                <br><center><img class="page-break-none" src="pchart_targetRange.png"></center></li>
+                                                <br><center><img class="page-break-none" src="img/pchart_targetRange.png"></center></li>
                                             </ul> 
 
                                         </li>	-->
@@ -589,7 +473,7 @@
 
                                                     </li>
                                                 </ul>  
-                                                <br><center><img class="page-break-none" src="pchart_oxygen1.png"></center>
+                                                <br><center><img class="page-break-none" src="img/pchart_oxygen1.png"></center>
                                                
                                             </ul> 
                                             </div>
@@ -629,14 +513,14 @@
 
                                                     </li>
                                                 </ul>  
-                                                <br><center><img class="page-break-none" src="pchart_oxygen2.png"></center></li>
+                                                <br><center><img class="page-break-none" src="img/pchart_oxygen2.png"></center></li>
                                             </ul> 
                                            </div>
 
                                         </li>	
                                         <%
                                             # grab all data AFTER KICK-OFF DATE where fio2 is not NA and is >.21(sao2 may be NA)
-                                            tempData = subset(rdata, !is.na(fio2_5) & fio2_5>.21 & !is.na(month) & as.Date(as.character(dob),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
+                                            tempData = subset(rdata, !is.na(fio2_5) & fio2_5>.21 & !is.na(month) & as.Date(as.character(dob_fake),format="%m/%d/%y")>=as.Date("2012-09-01"), select = c(study_id, sao2_5,fio2_5,month))
                                             months = seq(as.Date("2012-09-01"), Sys.Date(), by="1 month")
                                             monthList = format(months,"%m/%Y")
                                             denomList = c()
@@ -886,7 +770,7 @@
                                             %>
                                             <ul>
                                                 <li> The following figure illustrates the percent of records within the target range for each month. The target range is defined as records with a cool (36.0-36.4C) or normothermic (36.5-37.5C) admission temperature.<br>
-                                                 <center><img class="page-break-none" src="pchart_thermalTargetRange.png"></center> </li>
+                                                 <center><img class="page-break-none" src="img/pchart_thermalTargetRange.png"></center> </li>
 
                                             </ul> 
 
@@ -907,7 +791,7 @@
                     %>
                     <ul>
                         <li> The following figure illustrates the percent of records that received surfactant out of all the surfactant-eligible records. (Note: Eligibility as determined by local protocol)
-                        <center><img class="page-break-none" src="pchart_surfactant.png"></center>
+                        <center><img class="page-break-none" src="img/pchart_surfactant.png"></center>
                     </ul>
                 
                  </li>
@@ -931,7 +815,7 @@
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,"2013-01-01","end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="mchart_firstaccessobtained.png"></center>')
+                              cat('<center><img class="page-break-none" src="img/mchart_firstaccessobtained.png"></center>')
                             }
                             
                         %>     
@@ -980,7 +864,7 @@
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="mchart_antibiotics_started.png"></center>')
+                              cat('<center><img class="page-break-none" src="img/mchart_antibiotics_started.png"></center>')
                             }
                         %>                        
                     </ul>
@@ -1003,7 +887,7 @@
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
-                              cat('<center><img class="page-break-none" src="mchart_pco2_value.png"></center>')
+                              cat('<center><img class="page-break-none" src="img/mchart_pco2_value.png"></center>')
                             }
                         %>  
                     </ul>
@@ -1014,12 +898,7 @@
                 <!-- ###################################################################################   -->
                 <li class="section page-break-before"><h2>Communication Phases</h2>
                     <ul><li>The following figures illustrate the breakdown of communication phase completion for each month (starting from kick-off). Missing fields are represented as "N/A". All records are included, regardless of whether communication data has been entered. </li></ul>
-                    <%
-                        #pchartWithBars(rdata,'pre_resusc_checklist')
-                        #pchartWithBars(rdata,'pre_resusc_briefing')
-                        #pchartWithBars(rdata,'post_resusc_briefing')
-                        #pchartWithBars(rdata,'parents_commun')
-                        
+                    <%                        
                         stackedBarChart(rdata=rdata,columnOfInterest='pre_resusc_checklist',chartTitle='Pre-resuscitation Checklist Completed?')
                         stackedBarChart(rdata=rdata,columnOfInterest='pre_resusc_briefing',chartTitle=label(rdata)['pre_resusc_briefing'])
                         stackedBarChart(rdata=rdata,columnOfInterest='post_resusc_briefing',chartTitle=label(rdata)['post_resusc_briefing'])
@@ -1032,15 +911,13 @@
                 <!-- ###################################################################################   -->
                 <li class="section page-break-before"><h2>Summary of Optional Outcome Data Fields</h2>                  
                     <%
-                        optional_fields = select=c('discharge_date','discharge_disp','oxygen_required','ivh3_4pvl','rop')
-                        optional_subset = subset(nicu_subset,select=c('dob',optional_fields))
-                        optional_subset$age_dod = as.Date(as.character(optional_subset$discharge_date),format="%m/%d/%y") - as.Date(as.character(optional_subset$dob),format="%m/%d/%y")
+                        optional_fields = select=c('discharge_date_fake','discharge_disp','oxygen_required','ivh3_4pvl','rop')
+                        optional_subset = subset(nicu_subset,select=c('dob_fake',optional_fields))
                         denom = nrow(optional_subset)
                         percent_dod = round(sum(!is.na(optional_subset$discharge_date))/denom*100)
                         discharge_disp_count = sum(!is.na(optional_subset$discharge_disp))
                         
-                        cat("<ul><li>Of <b>", denom,"</b> total record(s) admitted to the NICU, <b>", percent_dod,"%</b> have a discharge date recorded.</li>",sep="")
-                        cat("<li>For fields with a discharge date recorded, the average age at discharge was <b>", round(mean(optional_subset$age_dod,na.rm=TRUE)) ," (days)</b>.</li>",sep="")
+                        cat("<ul><li>Of <b>", denom,"</b> total record(s) admitted to the NICU, <b>", percent_dod,"%</b> have a discharge month and year recorded.</li>",sep="")
                         cat("<li>Of <b>",discharge_disp_count,"</b> case(s) with a discharge disposition reported:</li>",sep="")
                         cat("<ul>
                                 <li><b>",round(sum(optional_subset$discharge_disp=="Home",na.rm=TRUE)/discharge_disp_count*100),"%</b> went home</li>

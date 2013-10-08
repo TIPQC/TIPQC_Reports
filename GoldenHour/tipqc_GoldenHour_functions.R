@@ -362,9 +362,12 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
 {
 	switch(dataCheckCategory, 
 				'dob'={
-					#date of birth occurs before 5/1/2012 or after today or is missing
-					condition = as.numeric(as.Date(as.character(rdata$dob),format="%m/%d/%y"))<as.Date("2012-05-01") | as.numeric(Sys.Date() - as.Date(as.character(rdata$dob),format="%m/%d/%y"))<0	 | is.na(rdata$dob)	| rdata$dob==""	
-					description = paste("A date of birth that is missing, occurring before 5/1/2012, or occurring after today (",format(Sys.time(), "%B %d, %Y", usetz = TRUE),")",sep="")  
+					#month/year of birth occurs before  May 2012 or in future or is missing
+          #current month
+          current_month = format(Sys.Date(),"%m")
+          current_year = format(Sys.Date(),"%Y")
+					condition = as.numeric(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y"))<as.Date("2012-05-01") | (rdata$month>current_month && rdata$yob > current_year)	 | is.na(rdata$dob_fake)	| rdata$dob_fake==""	
+					description = "A month/year of birth that is missing, occurring before May 2012, or occurring in the future" 
 				},
 				'ega'={
 					#missing ega
@@ -387,9 +390,9 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
 					description = "An SaO2 score outside of the 0-100% range (if admitted to NICU)"				  
 				},
 				'dod'={
-					#date of discharge occuring before date of birth, more than a year after dob, or after today
-					condition = as.numeric(as.Date(as.character(rdata$discharge_date),format="%m/%d/%y") - as.Date(as.character(rdata$dob),format="%m/%d/%y")) < 0 | as.numeric(as.Date(as.character(rdata$discharge_date),format="%m/%d/%y") - as.Date(as.character(rdata$dob),format="%m/%d/%y")) > 365 | 	as.numeric(Sys.Date() - as.Date(as.character(rdata$discharge_date),format="%m/%d/%y"))<0
-					description = "A date of discharge occurring before date of birth, >1 year after birth, or after today (if admitted to NICU)" 
+					#month/year of discharge occuring before month/year of birth, more than a year after dob, or after today
+					condition = as.numeric(as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) < 0 | as.numeric(as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) > 365 | 	as.numeric(Sys.Date() - as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y"))<0
+					description = "A month/year of discharge occurring before month/year of birth, >1 year after birth, or in the future (if admitted to NICU)" 
 				}
 			)		
 	
@@ -590,7 +593,7 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 	mylabel = label(rdata[,columnOfInterest])
 	
 	# all data where columnOfInterest is not missing
-	alldata = subset(rdata,!is.na(rdata[,columnOfInterest]) ,select=c("clinic","study_id",columnOfInterest,"dob","record"))
+	alldata = subset(rdata,!is.na(rdata[,columnOfInterest]) ,select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
 	if(nrow(alldata)>0)
 	{                              
 		allplotdata = subset(alldata,select=c(columnOfInterest))
@@ -601,13 +604,13 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 		}				                                                               
 		
 		# plot 1
-		png_filename1 = paste('img/xbarchart_',columnOfInterest,sep="")
+		png_filename1 = paste('img/xbarchart_',columnOfInterest,'.png',sep="")
 		png(png_filename1,height=h,width=w)
 			xbarI = xbarI_built_in_plot(allplotdata,yaxis_label)
 			# add month labels
 			alldata$order = seq(1:nrow(alldata))
-			first_record_each_month = qcc.groups(alldata$order,format(as.Date(as.character(alldata$dob),format="%m/%d/%y"),format="%Y-%m"))[,1]
-			monthList = unique(format(as.Date(as.character(alldata$dob),format="%m/%d/%y"),format="%b %Y"))
+			first_record_each_month = qcc.groups(alldata$order,format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
+			monthList = unique(format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%b %Y"))
 			axis(1,las=2,line=-3.5,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)
 		dev.off()
 	
@@ -619,14 +622,14 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 		if(nrow(plot2data$qdata)>0)
 		{                                    
 			recentData = TRUE;
-			png_filename2 = paste('img/xbarchart_',columnOfInterest,"_2",sep="")
+			png_filename2 = paste('img/xbarchart_',columnOfInterest,"_2.png",sep="")
 			png(png_filename2,height=h,width=w)
 				xbarI_built_in_plot2(data=plot2data$qdata1,data.name=plot2data$plotDividerLabels[1],newdata=plot2data$qdata2,newdata.name=plot2data$plotDividerLabels[2],cutoffMonth=plot2data$monthLabels[4],yaxis_label)  
 				# add month labels
 				allplot2data = plot2data$qdata
 				allplot2data$order = seq(1:nrow(allplot2data))
-				first_record_each_month = qcc.groups(allplot2data$order,format(as.Date(as.character(allplot2data$dob),format="%m/%d/%y"),format="%Y-%m"))[,1]
-				monthList = unique(format(as.Date(as.character(allplot2data$dob),format="%m/%d/%y"),format="%b %Y"))
+				first_record_each_month = qcc.groups(allplot2data$order,format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
+				monthList = unique(format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%b %Y"))
 				axis(1,las=2,line=-2.3,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)                                 
 			dev.off()
 				
@@ -638,12 +641,12 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 		if(USER=='state_user')
 		{
 			
-			cat("The following figures are statistical process control charts for ",mylabel,". Records are sorted by date of birth. Records with the same date of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")
+			cat("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")
 				
 			
 		}else
 		{
-			cat(paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by date of birth. Records with the same date of birth are then sorted by study ID. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the study ID and the month of birth in the x-axis. Note that study ID's may not be sequential since records are sorted by date of birth first and some records may be excluded.",sep=""))		
+			cat(paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by study ID. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the study ID and the month of birth in the x-axis. Note that study ID's may not be sequential since records are sorted by month/year of birth first and some records may be excluded.",sep=""))		
 		}
 		outlierTable(alldata,USER,columnOfInterest,mylabel,yaxis_label,xbarI)
 		
@@ -653,7 +656,7 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 			cat(paste("<center><img class='page-break-none' src='",png_filename2,"'></center></li>",sep=""))
 		}else
 		{
-			cat(paste("<li>Your center does not have any data for ",mylabel," since ",tail(alldata,1)$dob,".</li>",sep=""))
+			cat(paste("<li>Your center does not have any data for ",mylabel," since ",format(as.Date(as.character(tail(alldata,1)$dob_fake,format="%m/%d/%y"),format="%Y-%m")),".</li>",sep=""))
 		}
 		
     # DISABLED BECAUSE A DIFFERENT FUNCTION IS USED (mchart) THAT ALLOWS FOR MANUALLY ADDING SHIFTS
@@ -751,7 +754,7 @@ xbarI_plot2_formatData = function(rdata,columnOfInterest,USER)
 
 	
 	# get data starting from 3 months ago
-    qdata = subset(rdata, !is.na(rdata[,columnOfInterest]) & as.numeric(as.Date(as.character(rdata$dob),format="%m/%d/%y")) >= as.Date(monthLabels[4]), select=c("clinic","study_id",columnOfInterest,"dob","record"))
+    qdata = subset(rdata, !is.na(rdata[,columnOfInterest]) & as.numeric(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) >= as.Date(monthLabels[4]), select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
     if(nrow(qdata)>0)
     {
     	if(USER=='state_user'){
@@ -759,8 +762,8 @@ xbarI_plot2_formatData = function(rdata,columnOfInterest,USER)
     	}else{
     		rownames(qdata)=qdata$record
     	}
-    	qdata1 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob),format="%m/%d/%y"))>=as.Date(monthLabels[4]) & as.numeric(as.Date(as.character(qdata$dob),format="%m/%d/%y"))<as.Date(monthLabels[2]),select=c(columnOfInterest))
-        qdata2 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob),format="%m/%d/%y"))>=as.Date(monthLabels[2]),select=columnOfInterest)
+    	qdata1 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[4]) & as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))<as.Date(monthLabels[2]),select=c(columnOfInterest))
+        qdata2 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[2]),select=columnOfInterest)
     }else{
     	qdata1 = NULL
     	qdata2 = NULL
@@ -824,7 +827,7 @@ pchartWithBars = function(rdata,columnOfInterest,h=480,w=850)
 		colnames(plotData) = monthList
 		rownames(plotData) = c("No","Yes","NA")
     
-	pngFileName = paste('pchartWithBars_',columnOfInterest,".png",sep="")
+	pngFileName = paste('img/pchartWithBars_',columnOfInterest,".png",sep="")
 	
 	png(pngFileName,height=h,width=w)
 		# Expand right side of clipping rect to make room for the legend
