@@ -10,6 +10,7 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 					
 	colors = c("black","blue","red","green","purple","orange","brown")
 	y = c()
+  y_tmp = c()
 	numList = c()
 	denomList = c()
 	#monthList = unique(rdata$month[!is.na(rdata$month)])
@@ -30,77 +31,82 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 			colNum = match(columnList[column],names(rdata)) #get the column number of the column name
 			denominator = sum(rdata$month==monthList[month],na.rm=TRUE) # sum total number of data points for given month
 			# set numerator
-			switch(option, 
-				'1'={
-					#sum the number of data points in given column for given month that are not NA
-					numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]])) 								  
-				},
-				'2'={
-					#sum the number of data points in given column for given month that are equal to "1"
-					numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-				},
-				'3'={
-					fio2_5_colNum = match("fio2_5",names(rdata)) #get the column number of the column name
-					#sum the number of data points where fio2>.21 & sao2>=80 & sa02<=85 & fio2!=1
-					s1 = subset(rdata,rdata$fio2_5>.21,select=c("fio2_5","sao2_5","month"))
-					s2 = subset(s1,s1$sao2_5>=80 & !is.na(month))
-					s3 = subset(s2,s2$sao2_5<=85)
-					s4 = subset(s3,s3$fio2_5!=1)
-					# numerator for given month
-					numerator = 0
-					if(nrow(s4)>0)
-					{
-						for(i in 1:nrow(s4))
-						{
-							if(s4[i,3]==monthList[month]) 
-								numerator = numerator+1
-						}
-					}
-					
-					# total number of data points where fio2>.21 for given month
-					denominator = sum(rdata[,fio2_5_colNum][rdata$month==monthList[month]]>.21,na.rm=TRUE)  
-					#
-					mylabels = c()
-				},
-				'4'={
-					numerator = sum(rdata[,colNum][rdata$month==monthList[month]]>=36 & rdata[,colNum][rdata$month==monthList[month]]<=37.5,na.rm=TRUE) 
-				},
-				'5'={
-					#sum the number of data points where surfactant received
-					numerator = sum(rdata[,'surfactant_received'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-					#sum the number of data points where surfactant eligible
-					denominator =  sum(rdata[,'surfactant_eligible'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-					
-				},
-				'6'={
-					# OXYGEN MANAGEMENT PCHART 1
-					# denominator - all cases EXCEPT where sao2 and/or fio2 are NA, and EXCEPT where room air and above average
-					dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5))
-					dSub = subset(dSub,!(dSub$sao2_5>=95 & dSub$fio2_5==.21))
-					denominator = nrow(dSub)
-					#numerator - 75%<SaO2<95% (sao2 & fio2 may NOT be NA)
-					numerator = nrow(subset(dSub,dSub$sao2_5>75 & dSub$sao2_5<95,select=c("sao2_5")))	
-					addControlLimits=1		
-					#expand bottom margin 		
-					par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))
-				},
-				'7'={
-					# OXYGEN MANAGEMENT PCHART 2
-					# denominator: all cases where fio2>.21 (sao2 & fio2 may NOT be NA)
-					dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5) & monthSubset$fio2_5 > .21, select=c('sao2_5','fio2_5','month'))
-					denominator = nrow(dSub)
-					#numerator: 80%<=SaO2<=85% and fio2>.21 (sao2 & fio2 may NOT be NA)
-					numerator = nrow(subset(dSub,dSub$sao2_5>=80 & dSub$sao2_5<=85,select=c("sao2_5","fio2_5","month")))		
-					addControlLimits=1	
-					#expand bottom margin	
-					par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))	
-					
-				},		
-				{
-					#default
-				   	numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
-				}
-			)			
+			switch(option,
+	       '1'={
+	         #sum the number of data points in given column for given month that are not NA
+	         numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
+	       },
+	       '2'={
+	         #sum the number of data points in given column for given month that are equal to "1"
+	         numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
+	       },
+	       '3'={
+	         fio2_5_colNum = match("fio2_5",names(rdata)) #get the column number of the column name
+	         #sum the number of data points where fio2>.21 & sao2>=80 & sa02<=85 & fio2!=1
+	         s1 = subset(rdata,rdata$fio2_5>.21,select=c("fio2_5","sao2_5","month"))
+	         s2 = subset(s1,s1$sao2_5>=80 & !is.na(month))
+	         s3 = subset(s2,s2$sao2_5<=85)
+	         s4 = subset(s3,s3$fio2_5!=1)
+	         # numerator for given month
+	         numerator = 0
+	         if(nrow(s4)>0)
+	         {
+	           for(i in 1:nrow(s4))
+	           {
+	             if(s4[i,3]==monthList[month])
+	               numerator = numerator+1
+	           }
+	         }
+	         
+	         # total number of data points where fio2>.21 for given month
+	         denominator = sum(rdata[,fio2_5_colNum][rdata$month==monthList[month]]>.21,na.rm=TRUE)
+	         #
+	         mylabels = c()
+	         mytext = "Total No. Records \n with FiO2>0.21 (n):";
+	         addControlLimits=1
+	       },
+	       '4'={
+	         numerator = sum(rdata[,colNum][rdata$month==monthList[month]]>=36 & rdata[,colNum][rdata$month==monthList[month]]<=37.5,na.rm=TRUE)
+	         addControlLimits=1
+	       },
+	       '5'={
+	         #sum the number of data points where surfactant received
+	         numerator = sum(rdata[,'surfactant_received'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
+	         #sum the number of data points where surfactant eligible
+	         denominator = sum(rdata[,'surfactant_eligible'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
+	         mytext = "Total No. Surfactant \nEligible Records (n):";
+	         addControlLimits=1
+	         
+	       },
+	       '6'={
+	         # OXYGEN MANAGEMENT PCHART 1
+	         # denominator - all cases EXCEPT where sao2 and/or fio2 are NA, and EXCEPT where room air and above average
+	         dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5))
+	         dSub = subset(dSub,!(dSub$sao2_5>=95 & dSub$fio2_5==.21))
+	         denominator = nrow(dSub)
+	         #numerator - 75%<SaO2<95% (sao2 & fio2 may NOT be NA)
+	         numerator = nrow(subset(dSub,dSub$sao2_5>75 & dSub$sao2_5<95,select=c("sao2_5")))	
+	         addControlLimits=1	
+	         #expand bottom margin
+	         par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))
+	       },
+	       '7'={
+	         # OXYGEN MANAGEMENT PCHART 2
+	         # denominator: all cases where fio2>.21 (sao2 & fio2 may NOT be NA)
+	         dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5) & monthSubset$fio2_5 > .21, select=c('sao2_5','fio2_5','month'))
+	         denominator = nrow(dSub)
+	         #numerator: 80%<=SaO2<=85% and fio2>.21 (sao2 & fio2 may NOT be NA)
+	         numerator = nrow(subset(dSub,dSub$sao2_5>=80 & dSub$sao2_5<=85,select=c("sao2_5","fio2_5","month")))	
+	         addControlLimits=1	
+	         #expand bottom margin
+	         par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))	
+	         
+	       },	
+        {
+          #default
+          numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
+        }
+			)				
 			if(denominator==0)
 			{
 				percent = NaN
@@ -109,11 +115,24 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 				percent = numerator/denominator*100
 			}
 				
-			
+			y_tmp = c(y_tmp,percent)
 			y = c(y,percent) # make array of y values for plot
+			if(column==1)
+			{
+			  numList = c(numList,numerator)
+			  denomList = c(denomList,denominator)	
+			}
 		}
-		
+    if(column==1){
+      myplotdata = data.frame(y)
+      colnames(myplotdata)=columnList[1]
+    }else{
+      myplotdata[,columnList[column]] = y_tmp
+    }  
+		y_tmp = c()
 	}
+  rm(y_tmp)
+  
 	if(lowerYlim==30){
 		if(length(y[!is.nan(y)&!is.na(y)])>0){
 			lowerYlim = min(30,floor(min(y[!is.nan(y)&!is.na(y)])/10)*10)
@@ -121,114 +140,10 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 			lowerYlim = 30
 		}
 	}
-		
 	
 	
-	y = c()
 	# begin creating pchart	
-	for(column in 1:length(columnList))
-	{	
-		for(month in 1:length(monthList))
-		{
-			monthSubset = rdata[rdata$month==monthList[month],]
-			colNum = match(columnList[column],names(rdata)) #get the column number of the column name
-			denominator = sum(rdata$month==monthList[month],na.rm=TRUE) # sum total number of data points for given month
-			# set numerator
-			switch(option, 
-				'1'={
-					#sum the number of data points in given column for given month that are not NA
-					numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]])) 								  
-				},
-				'2'={
-					#sum the number of data points in given column for given month that are equal to "1"
-					numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-				},
-				'3'={
-					fio2_5_colNum = match("fio2_5",names(rdata)) #get the column number of the column name
-					#sum the number of data points where fio2>.21 & sao2>=80 & sa02<=85 & fio2!=1
-					s1 = subset(rdata,rdata$fio2_5>.21,select=c("fio2_5","sao2_5","month"))
-					s2 = subset(s1,s1$sao2_5>=80 & !is.na(month))
-					s3 = subset(s2,s2$sao2_5<=85)
-					s4 = subset(s3,s3$fio2_5!=1)
-					# numerator for given month
-					numerator = 0
-					if(nrow(s4)>0)
-					{
-						for(i in 1:nrow(s4))
-						{
-							if(s4[i,3]==monthList[month]) 
-								numerator = numerator+1
-						}
-					}
-					
-					# total number of data points where fio2>.21 for given month
-					denominator = sum(rdata[,fio2_5_colNum][rdata$month==monthList[month]]>.21,na.rm=TRUE)  
-					#
-					mylabels = c()
-					mytext = "Total No. Records \n with FiO2>0.21 (n):";
-					addControlLimits=1
-				},
-				'4'={
-					numerator = sum(rdata[,colNum][rdata$month==monthList[month]]>=36 & rdata[,colNum][rdata$month==monthList[month]]<=37.5,na.rm=TRUE) 
-					addControlLimits=1
-				},
-				'5'={
-					#sum the number of data points where surfactant received
-					numerator = sum(rdata[,'surfactant_received'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-					#sum the number of data points where surfactant eligible
-					denominator =  sum(rdata[,'surfactant_eligible'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-					mytext = "Total No. Surfactant \nEligible Records (n):";
-					addControlLimits=1
-					
-				},
-				'6'={
-					# OXYGEN MANAGEMENT PCHART 1
-					# denominator - all cases EXCEPT where sao2 and/or fio2 are NA, and EXCEPT where room air and above average
-					dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5))
-					dSub = subset(dSub,!(dSub$sao2_5>=95 & dSub$fio2_5==.21))
-					denominator = nrow(dSub)
-					#numerator - 75%<SaO2<95% (sao2 & fio2 may NOT be NA)
-					numerator = nrow(subset(dSub,dSub$sao2_5>75 & dSub$sao2_5<95,select=c("sao2_5")))	
-					addControlLimits=1		
-					#expand bottom margin 		
-					par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))
-				},
-				'7'={
-					# OXYGEN MANAGEMENT PCHART 2
-					# denominator: all cases where fio2>.21 (sao2 & fio2 may NOT be NA)
-					dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5) & monthSubset$fio2_5 > .21, select=c('sao2_5','fio2_5','month'))
-					denominator = nrow(dSub)
-					#numerator: 80%<=SaO2<=85% and fio2>.21 (sao2 & fio2 may NOT be NA)
-					numerator = nrow(subset(dSub,dSub$sao2_5>=80 & dSub$sao2_5<=85,select=c("sao2_5","fio2_5","month")))		
-					addControlLimits=1	
-					#expand bottom margin	
-					par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))	
-					
-				},				
-				{
-					#default
-				   	numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
-				}
-			)		
-			if(denominator==0)
-			{
-				percent = NaN
-			}else
-			{
-				percent = numerator/denominator*100
-			}
-				
-			
-			y = c(y,percent) # make array of y values for plot
-			if(column==1)
-			{
-				numList = c(numList,numerator)
-				denomList = c(denomList,denominator)	
-			}
-		}
-		if(column==1)
-		{
-			plot(y,type="o", ylim=c(lowerYlim,100), col=colors[column] ,axes=FALSE,ann=FALSE)
+			plot(myplotdata[,columnList[1]],type="o", ylim=c(lowerYlim,100), col=colors[1] ,axes=FALSE,ann=FALSE)
 			box(lty=1,col='black')
 			# Make x axis 
 			axis(1, at=1:length(monthList), lab=monthList)
@@ -273,13 +188,15 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 				
 			}
 
-		} else
-		{
-			lines(y,type="o",col=colors[column])
-		}
-		y=c()			
+		###############
+    if(length(columnList)>1){
+      for(column in 2:length(columnList))
+      {
+        lines(myplotdata[,columnList[column]],type="o",col=colors[column])
+      }
+    }	
 		
-	}	
+		
 	# add n at the bottom
 	if(exists("mytext"))
 	{
@@ -351,7 +268,6 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 	
 	# Restore default clipping rect
 	par(mar=c(5, 4, 4, 2) + 0.1)		
-	
 			
 }
 
