@@ -1042,24 +1042,3 @@ mchart <- function(data,column,USER,Ylim=c(0,100))
 
 
 
-
-
-### scratch paper
-pchart2<-function(rdata,columnList=c("month","fio2_5","sao2_5"),conditionList=cbind(rdata$fio2_5>.21 & !is.na(rdata$fio2_5) & rdata$sao2_5>=80 & rdata$sao2_5<=85 & !is.na(rdata$sao2_5),!is.na(rdata$sao2_5)),title,option,USER)
-{
-	monthList = unique(rdata$month)
-	mydata = matrix(0,length(monthList),ncol(conditionList))
-	for(condition in 1:ncol(conditionList))
-	{
-		for(month in 1:length(monthList))
-		{
-			sub1 = rdata[conditionList[,condition],columnList]
-			sub2 = sub1[sub1$month==monthList[month],]
-			numerator = nrow(sub2)
-			denominator = nrow(rdata[rdata$fio2>.21 & rdata$month==monthList[month],columnList])
-			mydata[month,condition] = numerator/denominator*100
-		}
-	}
-}
-
-
