@@ -974,9 +974,9 @@ addShift = function(points,groupSizes,monthList,fromDate,toDate,qcc_type="p",dat
 }
 					
 
-mchart <- function(data,column,USER,Ylim=c(0,100))
+mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
 {
-  cat("<br><li>The following figure is an xbar mean plot grouped by the infant's month of birth. This plot is only displayed in the statewide report. Control limits are calculated using the following formula: CL &plusmn; 3*SD. Sample SD's vary according to sample size.</li>")
+  cat("<br><li>The following figure is an xbar mean plot grouped by the infant's month of birth. Control limits are calculated using the following formula: CL &plusmn; 3*SD. Sample SD's vary according to sample size.</li>")
   title = label(data[,column])
   
   # Expand right side of clipping rect to make room for the legend
@@ -1010,7 +1010,7 @@ mchart <- function(data,column,USER,Ylim=c(0,100))
   axis(2,las=1)
   # Label the x and y axes
   title(xlab= "Month")
-  title(ylab= "Minutes of Life")
+  title(ylab= yaxis_label)
   # Create a title with a bold font
   title(main=paste(title," - Monthly Means",sep=""), font.main=2)
   

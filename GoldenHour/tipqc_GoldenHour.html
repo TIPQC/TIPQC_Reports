@@ -3,6 +3,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
   <title>TIPQC Golden Hour Report</title>
+  <script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" ></script>
+  <script language="javascript" type="text/javascript" src="http://datatables.net/download/build/jquery.dataTables.nightly.js"></script>
+  <script type='text/javascript'>
+    $(document).ready(function(){      
+      $('.filtering_enabled').dataTable();
+    });  
+    console.log("hello world");
+  </script>
   <style type="text/css">
     @media print{@page {size: landscape}}
     .page-break-before { page-break-before: always }
@@ -13,17 +21,11 @@
     .section { margin-top: 20px;}
     .subsection { margin-bottom: 20px;}
     .redtext{color:red;}
+    @import "../code/css/demo_table.css";
+    @import "../code/css/demo_page.css";
   </style>
 </head>
 <body>
-  <script language="javascript" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" ></script>
-  <script language="javascript" type="text/javascript" src="http://datatables.net/download/build/jquery.dataTables.nightly.js"></script>
-  <script type='text/javascript'>
-    console.log("hello");
-    $(document).ready(function(){
-      $('#myTable').dataTable();
-    });  
-  </script>
     <center>
         <h1>- TIPQC Golden Hour Report -</h1>
         <%=
@@ -795,7 +797,6 @@
                         <%
                             xbarI_section(nicu_subset,USER,'iv_access_age')
                             # add monthly mean xbar chart
-                            if(USER=="state_user"){
                               png('mchart_firstaccessobtained.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$iv_access_age))
                                 column = 'iv_access_age'
@@ -803,11 +804,16 @@
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
                                 mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
-                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
-                                addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,"2013-01-01","end","xbar",data_remove_nas,column)
+                                # if state user, add manually-entered shifts, otherwise no shifts
+                                if(USER=="state_user"){
+                                  addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
+                                  addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,"2013-01-01","end","xbar",data_remove_nas,column)
+                                }else{
+                                  addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
+                                }
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_firstaccessobtained.png"></center>')
-                            }
+                            
                             
                         %>     
                         
@@ -822,7 +828,7 @@
                         <%
                             xbarI_section(nicu_subset,USER,'glucose_iv_started_age')
                             # add monthly mean xbar chart
-                            if(USER=="state_user"){
+                            
                               png('mchart_glucose_iv_started_age.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$glucose_iv_started_age))
                                 column = 'glucose_iv_started_age'
@@ -833,7 +839,7 @@
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_glucose_iv_started_age.png"></center>')
-                            }
+                            
                         %>                        
                     </ul>
                 </li>
@@ -845,7 +851,6 @@
                         <li> 
                         <%
                             xbarI_section(nicu_subset,USER,'antibiotics_started')
-                            if(USER=="state_user"){
                               png('mchart_antibiotics_started.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$antibiotics_started))
                                 column = 'antibiotics_started'
@@ -856,7 +861,7 @@
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_antibiotics_started.png"></center>')
-                            }
+                            
                         %>                        
                     </ul>
                 </li>
@@ -868,18 +873,17 @@
                         <li>
                         <%
                             xbarI_section(nicu_subset,USER,'pco2_value',yaxis_label='mmHg')
-                            if(USER=="state_user"){
                               png('mchart_pco2_value.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$pco2_value))
                                 column = 'pco2_value'
-                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
+                                my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="mmHg")
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
-                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax),yaxis_label="mmHg")
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_pco2_value.png"></center>')
-                            }
+                            
                         %>  
                     </ul>
                 </li>
