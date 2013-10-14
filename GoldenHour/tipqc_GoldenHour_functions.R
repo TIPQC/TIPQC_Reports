@@ -986,17 +986,22 @@ mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
   
   monthList = format.Date(seq.Date(from = as.Date("2012-05-01"),to = Sys.Date(), by = "month"), "%m/%Y")
   
-  # get monthly means
+  # get monthly means & counts
   monthly_means = aggregate(data_remove_nas[,column],list(month=data_remove_nas$month),mean)
   monthly_counts = aggregate(data_remove_nas[,column],list(month=data_remove_nas$month),length)
   dataper <- data.frame(month = monthList, stringsAsFactors = FALSE)
   dataper$month <- factor(dataper$month, levels = unique(dataper$month),
                           ordered = TRUE)
+  # organize all needed plot data in dataframe
   plotdata = merge(dataper, monthly_means, by = "month", all = TRUE)
-  plotdata = merge(plotdata, monthly_counts, by = "month", all = TRUE)
+  plotdata = merge(plotdata, monthly_counts, by = "month", all = TRUE) 
   plotdata = plotdata[order(plotdata$month),]
+  
+  # give row & column names to plotdata
   colnames(plotdata) = c("month","y","count")
   rownames(plotdata) = NULL
+  # counts of NA are actually counts of zero
+  plotdata[is.na(plotdata$count),"count"]=0 
   
   # fix ylim in case of outliers
   ylower = min(Ylim[1],min(plotdata$y[!is.na(plotdata$y)])-5)
