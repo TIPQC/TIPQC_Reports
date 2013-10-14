@@ -351,7 +351,7 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
 
 }
 
-# add pilot date and kick-off dates to plot
+# add vertical line at pilot date and kick-off dates to plot
 addPilotAndKickoffDates<-function(monthList)
 {
 	# match returns a vector of the positions of (first) matches of its first argument in its second.
@@ -369,141 +369,7 @@ addPilotAndKickoffDates<-function(monthList)
 	}
 }
 
-qcc_xbar_one_plot = function(allplotdata,totalGroupNum)
-{
-	par("mar"=c(5, 4, 4, 2) + 0.1+c(5*totalGroupNum, 0,0,0),"bg"  = "lightgray")
-	rownames(allplotdata)=NULL
-	indices <- 1:nrow(allplotdata)
-	
-	plot(indices,allplotdata$iv_access_age,type="n",ylim=c(0,200),xlim=range(indices),xlab="Record",ylab="Minutes of Life",main="Age IV Solution Started (Minutes of Life) - All Collected Data")
-	                               
-	# add white box to be plotted on
-	rect(par("usr")[1], par("usr")[3], par("usr")[2], par("usr")[4], 
-	                                       col = "white")
-	# plot on box
-	lines(indices, allplotdata$iv_access_age, type = "b", pch=20) 
-	qcc_xbar_one_plot_elements(allplotdata,1,TRUE)
-}
 
-qcc_xbar_one_plot_elements = function(data,groupNum,last=FALSE,mylabel='')
-{
-	plt <- par()$plt; usr <- par()$usr
-    px <- diff(usr[1:2])/diff(plt[1:2])
-    xfig <- c(usr[1]-px*plt[1], usr[2]+px*(1-plt[2]))
-    at.col <- xfig[1] + diff(xfig[1:2])*c(0.10, 0.40, 0.65)
-    startLine = 5*groupNum
-	if(nrow(data)<=0)
-	{
-		if(mylabel!="")
-		{
-			mtext(paste(mylabel,":",sep=""), side = 1, line = startLine, adj = 0, at=at.col[1],font=2)
-		}   
-		mtext("No Data",side=1,line=startLine+1,adj=0,at=at.col[1])
-		return()
-	}
-		
-	q = qcc(data,type="xbar.one",plot=FALSE)
-	std.dev <- q$std.dev
-	lcl = q$limits[, "LCL"]
-	ucl = q$limits[, "UCL"]
-	violations <- q$violations
-	
-	
-	
-	# control limits
-	xx = as.numeric(rownames(data))
-	center = rep(q$center,length(xx))
-	lines(x=xx,y=center)
-	LCL = q$limits[, "LCL"]
-	if(length(LCL)==1 && length(xx)!=1)
-		LCL = rep(LCL,length(xx))
-	lines(x=xx,y=LCL,lty=2,type="s",lwd=1)
-	UCL = q$limits[, "UCL"]
-	if(length(UCL)==1 && length(xx)!=1)
-		UCL = rep(UCL,length(xx))
-	lines(x=xx,y=UCL,lty=2,type="s",lwd=1)
-	if(last)
-	{
-		mtext(side=4,line=.10,at=tail(center,1),text="CL",adj=0,cex=0.8)
-		mtext(side=4,line=.10,at=tail(LCL,1),text="LCL",adj=0,cex=0.8)
-		mtext(side=4,line=.10,at=tail(UCL,1),text="UCL",adj=0,cex=0.8)	
-	}	
-	
-	# red dots
-	for(i in 1:length(q$violations$beyond.limits))
-	{
-		xx = as.numeric(rownames(data)[q$violations$beyond.limits[i]])
-		yy = data[q$violations$beyond.limits[i],]
-		points(xx,yy,type="o",pch=16,cex=.9,col="red")
-	}
-	
-	# orange dots
-	for(i in 1:length(q$violations$violating.runs))
-	{
-		xx = as.numeric(rownames(data)[q$violations$violating.runs[i]])
-		yy = data[q$violations$violating.runs[i],]
-		points(xx,yy,type="o",pch=16,cex=.9,col="orange")
-	}
-	# vertical line (break-point)
-	if(mylabel!='')
-	{
-		abline(v=as.numeric(rownames(data)[1])-.5,xpd=FALSE)
-		mtext(side=3,text=mylabel,at=as.numeric(rownames(data)[1])+(as.numeric(tail(rownames(data),1))-as.numeric(rownames(data)[1]))/2,line=0,cex=.85,font=2)
-	}
-		
-	
-	
-	
-       # write info at bottom
-       roundTo = 2
-       startLine = 5*groupNum
-       if(mylabel!="")
-       {
-       		mtext(paste(mylabel,":",sep=""), 
-             side = 1, line = startLine, adj = 0, at=at.col[1],font=2)
-       }       
-       mtext(paste("Number of records = ", nrow(data), sep = ""), 
-             side = 1, line = startLine+1, adj = 0, at=at.col[1])
-       if (length(q$center) == 1)
-          mtext(paste("Center = ", round(signif(q$center, options()$digits),roundTo), sep = ""),
-                side = 1, line = startLine+2, adj = 0, at=at.col[1])
-       else 
-          mtext("Center is variable", 
-                side = 1, line = startLine+2, adj = 0, at=at.col[1])
-       mtext(paste("StdDev = ", round(signif(std.dev, options()$digits),roundTo), sep = ""),
-             side = 1, line = startLine+3, adj = 0, at=at.col[1])
-       target <- q$target
-       if (!is.null(target))
-          { if (length(target) == 1)
-                mtext(paste("Target = ", signif(target, options()$digits), 
-                            sep = ""),
-                      side = 1, line = startLine+1, adj = 0, at=at.col[2]
-                     )
-            else 
-                mtext("Target is variable", 
-                      side = 1, line = startLine+1, adj = 0, at=at.col[2])
-          }
-       if (length(unique(lcl)) == 1)
-          mtext(paste("LCL = ", round(signif(lcl, options()$digits),roundTo), sep = ""), 
-                side = 1, line = startLine+2, adj = 0, at=at.col[2])
-       else 
-          mtext("LCL is variable", side = 1, line = startLine+2, adj = 0, at=at.col[2])
-       if (length(unique(ucl)) == 1)
-          mtext(paste("UCL = ", round(signif(ucl, options()$digits),roundTo), sep = ""),
-                side = 1, line = startLine+3, adj = 0, at=at.col[2])
-       else 
-          mtext("UCL is variable", side = 1, line = startLine+3, adj = 0, at=at.col[2])
-       if (!is.null(violations))
-          { mtext(paste("Number beyond limits =",
-                        length(unique(violations$beyond.limits))), 
-                  side = 1, line = startLine+2, adj = 0, at = at.col[3])
-            mtext(paste("Number violating runs =",
-                        length(unique(violations$violating.runs))), 
-                  side = 1, line = startLine+3, adj = 0, at = at.col[3])
-           }
-     
-
-}
 xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Minutes of Life")
 {
 	mylabel = label(rdata[,columnOfInterest])
@@ -555,11 +421,8 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 		}                          
 		
 		if(USER=='state_user')
-		{
-			
-			cat("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")
-				
-			
+		{			
+			cat("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")			
 		}else
 		{
 			cat(paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by study ID. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the study ID and the month of birth in the x-axis. Note that study ID's may not be sequential since records are sorted by month/year of birth first and some records may be excluded.",sep=""))		
@@ -575,17 +438,6 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 			cat(paste("<li>Your center does not have any data for ",mylabel," since ",format(as.Date(as.character(tail(alldata,1)$dob_fake,format="%m/%d/%y"),format="%Y-%m")),".</li>",sep=""))
 		}
 		
-    # DISABLED BECAUSE A DIFFERENT FUNCTION IS USED (mchart) THAT ALLOWS FOR MANUALLY ADDING SHIFTS
-		# add mean xbar plot if state user
-		#if(USER=='state_user')
-		#{
-		#	png_filename3 = paste('xbarchart_',columnOfInterest,"_mean",sep="")
-		#	png(png_filename3,height=h,width=w)
-		#		xbarI_mean_plot(rdata,columnOfInterest,yaxis_label)
-		#	dev.off()
-		#	cat("<br><li>The following figure is an xbar mean plot grouped by the infant's month of birth. This plot is only displayed in the statewide report. Control limits are calculated using the following formula: CL &plusmn; 3*SD. Sample SD's vary according to sample size.</li>")
-		#	cat(paste("<br><center><img class='page-break-none' src='",png_filename3,"'></center></li>",sep=""))
-		#}
 	}else
 	{
 		cat(paste("Your center does not have any data for ",mylabel,"</li>",sep=""))
@@ -711,54 +563,7 @@ xbarI_mean_plot = function(rdata,columnOfInterest,yaxis_label)
 	plot(q,title=my_title,xlab="Month",ylab=yaxis_label)
   return(q)
 }
-# not used as of 4/2/13
-pchartWithBars = function(rdata,columnOfInterest,h=480,w=850)
-{
-	monthList = unique(rdata$month)
-	percent_complete = c()
-	percent_yes = c()
-	denomList = c()
-	plotData = data.frame()
-	# pull out data with NA for month
-	rdata=subset(rdata,!is.na(rdata$month))
-	
-	for(month in 1:length(monthList))
-	{
-		# number completed
-		num_complete_tmp = sum(!is.na(rdata[,columnOfInterest][rdata$month==monthList[month]])) 
-		denom_complete_tmp = sum(rdata$month==monthList[month])
-		
-		# number answered "Yes"
-		num_yes_tmp = sum(rdata[,columnOfInterest][rdata$month==monthList[month]]=="Yes",na.rm=TRUE) 
-		denom_yes_tmp = num_complete_tmp
-		
-		percent_complete = c(percent_complete,round(num_complete_tmp/denom_complete_tmp*100,1))
-		percent_yes = c(percent_yes,round(num_yes_tmp/denom_yes_tmp*100,1))
-		denomList = c(denomList,denom_complete_tmp)
-		
-		plotData[1,month] = round((denom_yes_tmp-num_yes_tmp)/denom_complete_tmp*100,1)
-		plotData[2,month] = round(num_yes_tmp/denom_complete_tmp*100,1)
-		plotData[3,month] = round(sum(is.na(rdata[,columnOfInterest][rdata$month==monthList[month]])) /denom_complete_tmp*100,1)		
-	}
-		colnames(plotData) = monthList
-		rownames(plotData) = c("No","Yes","NA")
-    
-	pngFileName = paste('pchartWithBars_',columnOfInterest,".png",sep="")
-	
-	png(pngFileName,height=h,width=w)
-		# Expand right side of clipping rect to make room for the legend
-		par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(0,7,0,10))
-		b = barplot(percent_complete,border=NA,col="#0000ff22",xlab="Month",ylab="Percent",main=label(rdata[,columnOfInterest]),xlim=c(0,100))
-        lines(x=b,y=percent_yes)
-        legend("topright",c("Data % Completion","% 'Yes' of Completed"),bty="n",col=c("#0000ff22","black"),pch=c(15,-1),lty = c(0,1))
-    dev.off()
-    
-    # Restore default clipping rect
-    par(mar=c(5, 4, 4, 2) + 0.1)
-    
-    cat(paste("<br><br><center><img src='",pngFileName,"'></center>",sep=""))
-    
-}
+
 
 stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 {
@@ -1019,13 +824,6 @@ mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
   # Create a title with a bold font
   title(main=paste(title," - Monthly Means",sep=""), font.main=2)
   
-  # exclude rows where group size is <2
-  #plotdata = subset(plotdata,plotdata$count>1)
-  # add Pilot date and kickoff date markers
-  #addPilotAndKickoffDates(monthList)  		
-  ## pilot date (5/1/2012-8/31/2012)
-  #pilotToKickoffqcc = addShift(points=plotdata$y,groupSizes=plotdata$count,monthList,"2012-05-01","2012-09-01","xbar",data_remove_nas,column)
-  
   # add No. clinics participating at the top
   if(USER == "state_user")
   {
@@ -1043,6 +841,8 @@ mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
   
   return(plotdata)
 }
+
+
 
 
 
