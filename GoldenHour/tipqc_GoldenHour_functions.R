@@ -107,13 +107,7 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
           numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
         }
 			)				
-			if(denominator==0)
-			{
-				percent = NaN
-			}else
-			{
-				percent = numerator/denominator*100
-			}
+			percent = ifelse(denominator==0,NaN,numerator/denominator*100)
 				
 			y_tmp = c(y_tmp,percent)
 			y = c(y,percent) # make array of y values for plot
@@ -198,13 +192,9 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 		
 		
 	# add n at the bottom
-	if(exists("mytext"))
-	{
-		mtext(side = 1, text = mytext, at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
-	}else
-		mtext(side = 1, text = "Total No. Records (n):", at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
-
- 	axis(side=1,at=1:length(monthList),labels=denomList,hadj=1,tick = FALSE,cex.axis=.85,line=3,font=2) 
+	bottomText = ifelse(exists("mytext"),mytext,"Total No. Records (n):")
+	mtext(side = 1, text = bottomText, at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
+  axis(side=1,at=1:length(monthList),labels=denomList,hadj=1,tick = FALSE,cex.axis=.85,line=3,font=2) 
 	
 	# add No. clinics participating at the top
 	if(USER == "state_user")
@@ -369,107 +359,90 @@ addPilotAndKickoffDates<-function(monthList)
 	}
 }
 
-
+###################
+## XbarI SECTION ## 
+###################
 xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Minutes of Life")
-{
+{	
+  # get all data where columnOfInterest is not missing
+  alldata = subset(rdata,!is.na(rdata[,columnOfInterest]) ,select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
+  
+  # exit if there is no data
+  if(nrow(alldata)==0){	  
+    return(cat(paste("Your center does not have any data for ",mylabel,"</li>",sep="")))
+  }   
+  
+	## set variables ##  
+  # data points to be plotted
+	allplotdata = subset(alldata,select=c(columnOfInterest))
+  # the column of interest label to be integrated in paragraph text and plot text
 	mylabel = label(rdata[,columnOfInterest])
+  # variables that are dependent on USER
+	if(USER == 'state_user'){
+	  rownames(allplotdata) = NULL
+	  section_explanatory_text = paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")
+	}else{
+	  rownames(allplotdata) = alldata$record
+	  section_explanatory_text = paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by study ID. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the study ID and the month of birth in the x-axis. Note that study ID's may not be sequential since records are sorted by month/year of birth first and some records may be excluded. ",sep="")    
+	}		                          		                                                                   
 	
-	# all data where columnOfInterest is not missing
-	alldata = subset(rdata,!is.na(rdata[,columnOfInterest]) ,select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
-	if(nrow(alldata)>0)
-	{                              
-		allplotdata = subset(alldata,select=c(columnOfInterest))
-		if(USER=='state_user'){
-			rownames(allplotdata)=NULL 
-		}else{
-			rownames(allplotdata) = alldata$record
-		}				                                                               
-		
-		# plot 1
-		png_filename1 = paste('xbarchart_',columnOfInterest,'.png',sep="")
-		png(png_filename1,height=h,width=w)
-			xbarI = xbarI_built_in_plot(allplotdata,yaxis_label)
+	# plot 1
+  # xbarI chart of all data
+	png_filename1 = paste('xbarchart_',columnOfInterest,'.png',sep="")
+	png(png_filename1,height=h,width=w)
+		xbarI = xbarI_built_in_plot(allplotdata,yaxis_label)
+		# add month labels
+		alldata$order = seq(1:nrow(alldata))
+		first_record_each_month = qcc.groups(alldata$order,format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
+		monthList = unique(format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%b %Y"))
+		axis(1,las=2,line=-3.5,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)
+	dev.off()
+
+	# plot 2
+  # xbarI chart of most recent data
+	# split data into 2 most recent months and 2 previous months
+	# i.e. If today is 2/4/13, split data into Jan-Feb 2013 and Nov-Dec 2013
+	plot2data = xbarI_plot2_formatData(rdata,columnOfInterest,USER)	
+	recentData = ifelse(nrow(plot2data$qdata)>0,TRUE,FALSE)
+	if(recentData)
+	{                                    
+		png_filename2 = paste('xbarchart_',columnOfInterest,"_2.png",sep="")
+		png(png_filename2,height=h,width=w)
+			xbarI_built_in_plot2(data=plot2data$qdata1,data.name=plot2data$plotDividerLabels[1],newdata=plot2data$qdata2,newdata.name=plot2data$plotDividerLabels[2],cutoffMonth=plot2data$monthLabels[4],yaxis_label)  
 			# add month labels
-			alldata$order = seq(1:nrow(alldata))
-			first_record_each_month = qcc.groups(alldata$order,format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
-			monthList = unique(format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%b %Y"))
-			axis(1,las=2,line=-3.5,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)
-		dev.off()
-	
-		# plot 2
-		# split data into 2 most recent months and 2 previous months
-		# i.e. If today is 2/4/13, split data into Jan-Feb 2013 and Nov-Dec 2013
-		plot2data = xbarI_plot2_formatData(rdata,columnOfInterest,USER)
-		
-		if(nrow(plot2data$qdata)>0)
-		{                                    
-			recentData = TRUE;
-			png_filename2 = paste('xbarchart_',columnOfInterest,"_2.png",sep="")
-			png(png_filename2,height=h,width=w)
-				xbarI_built_in_plot2(data=plot2data$qdata1,data.name=plot2data$plotDividerLabels[1],newdata=plot2data$qdata2,newdata.name=plot2data$plotDividerLabels[2],cutoffMonth=plot2data$monthLabels[4],yaxis_label)  
-				# add month labels
-				allplot2data = plot2data$qdata
-				allplot2data$order = seq(1:nrow(allplot2data))
-				first_record_each_month = qcc.groups(allplot2data$order,format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
-				monthList = unique(format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%b %Y"))
-				axis(1,las=2,line=-2.3,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)                                 
-			dev.off()
-				
-		}else
-		{
-			recentData = FALSE;
-		}                          
-		
-		if(USER=='state_user')
-		{			
-			cat("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by record and then center number if necessary. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the sequential record ID and the month of birth in the x-axis. Note that the assigned sequential record ID is not the same as the patient study ID. The sequential record ID is a sequentially assigned number for all records meeting a particular graph's selection criteria. For example, point 12 is the 12th patient in sequence for the specific parameters in a single graph.")			
-		}else
-		{
-			cat(paste("The following figures are statistical process control charts for ",mylabel,". Records are sorted by month/year of birth. Records with the same month/year of birth are then sorted by study ID. The first plot contains all collected data and displays the month of birth in the x-axis. The second plot has only the most recent data and has both the study ID and the month of birth in the x-axis. Note that study ID's may not be sequential since records are sorted by month/year of birth first and some records may be excluded.",sep=""))		
-		}
-		outlierTable(alldata,USER,columnOfInterest,mylabel,yaxis_label,xbarI)
-		
-		cat(paste("<center><img class='page-break-none' src='",png_filename1,"'></center><br>",sep=""))
-		if(recentData)
-		{
-			cat(paste("<center><img class='page-break-none' src='",png_filename2,"'></center></li>",sep=""))
-		}else
-		{
-			cat(paste("<li>Your center does not have any data for ",mylabel," since ",format(as.Date(as.character(tail(alldata,1)$dob_fake,format="%m/%d/%y"),format="%Y-%m")),".</li>",sep=""))
-		}
-		
-	}else
-	{
-		cat(paste("Your center does not have any data for ",mylabel,"</li>",sep=""))
-	}
+			allplot2data = plot2data$qdata
+			allplot2data$order = seq(1:nrow(allplot2data))
+			first_record_each_month = qcc.groups(allplot2data$order,format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
+			monthList = unique(format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%b %Y"))
+			axis(1,las=2,line=-2.3,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)                                 
+		dev.off()		
+		plot2_ifExists = paste("<center><img class='page-break-none' src='",png_filename2,"'></center></li>",sep="")
+	}else{
+	  plot2_ifExists = paste("<li>Your center does not have any data for ",mylabel," since ",format(as.Date(as.character(tail(alldata,1)$dob_fake,format="%m/%d/%y"),format="%Y-%m")),".</li>",sep="")
+	}                     
+
+  # print results to page
+	cat(section_explanatory_text)
+	outlierTable(alldata,USER,columnOfInterest,mylabel,yaxis_label,xbarI)
+	cat(paste("<center><img class='page-break-none' src='",png_filename1,"'></center><br>",sep=""))
+  cat(plot2_ifExists)
 }
 
-
- 
+################
+## XbarI PLOT ## 
+################
 xbarI_built_in_plot = function(allplotdata,yaxis_label)
 {
 	q = qcc(allplotdata,type="xbar.one",stats=TRUE,chart.all=TRUE,plot=FALSE,xaxt="n",labels=rep("",nrow(allplotdata)))
-	
-	# round center, std dev, limits
-	q$center = round(q$center,2)
-	q$std.dev = round(q$std.dev,2)
-	q$limits = round(q$limits,2)
-	
-	title = label(allplotdata)
-	
-	if(yaxis_label=='mmHg'){
-		my_ylim = c(0,120)
-	}else{
-		my_ylim = c(0,200)
-	}
-	
-	plot(q,add.stats=TRUE,chart.all=TRUE,title=paste(title," - All Collected Data",sep=""),xlab="",ylab=yaxis_label,ylim=my_ylim)
-	
-	# Restore default clipping rect
-	par(mar=c(5, 4, 4, 2) + 0.1)	
-	
+	title = paste(label(allplotdata)," - All Collected Data",sep="")
+	q = xbarI_plot_elements(q,title,yaxis_label)	
 	return(q)
 }
+
+
+#####################################
+## XbarI PLOT 2 - Most Recent Data ## 
+#####################################
 xbarI_built_in_plot2 = function(data,data.name,newdata,newdata.name,cutoffMonth,yaxis_label)
 {
 	if (nrow(data)>0 & nrow(newdata)>0) {
@@ -480,25 +453,43 @@ xbarI_built_in_plot2 = function(data,data.name,newdata,newdata.name,cutoffMonth,
 	}else if(nrow(data)==0 & nrow(newdata)>0) {
 		q = qcc(newdata,type="xbar.one",stats=TRUE,chart.all=TRUE,data.name=newdata.name,plot=FALSE)
 	}
-
-	# round center, std dev, limits
-	q$center = round(q$center,2)
-	q$std.dev = round(q$std.dev,2)
-	q$limits = round(q$limits,2)
-	
-	title = label(data)
-	combined_data = rbind(data,newdata)
-	if(yaxis_label=='mmHg'){
-		my_ylim = c(0,120)
-	}else{
-		my_ylim = c(0,200)
-	}
-	plot(q,add.stats=TRUE,chart.all=TRUE,title=paste(title," - Data From ",format(cutoffMonth,format="%b %Y")," to Present",sep=""),cex.axis=0.8,las.axis=2,xlab="",ylab=yaxis_label,ylim=my_ylim)
-	#axis(1,at=seq(1:nrow(combined_data)),labels=rownames(combined_data),cex.axis=.8,las=2,line=0)
-	
-	# Restore default clipping rect
-	par(mar=c(5, 4, 4, 2) + 0.1)	
+	title = paste(label(data)," - Data From ",format(cutoffMonth,format="%b %Y")," to Present",sep="")
+  q = xbarI_plot_elements(q,title,yaxis_label)	
+	return(q)
 }
+
+
+#########################
+## XbarI PLOT Elements ## 
+#########################
+xbarI_plot_elements = function(q,title,yaxis_label){
+  
+  # round center, std dev, limits
+  q$center = round(q$center,2)
+  q$std.dev = round(q$std.dev,2)
+  q$limits = round(q$limits,2)
+ 
+  # set ylim
+  if(yaxis_label=='mmHg'){
+    my_ylim = c(0,120)
+  }else{
+    my_ylim = c(0,200)
+  }
+  
+  # plot
+  plot(q,add.stats=TRUE,chart.all=TRUE,title=title,cex.axis=0.8,las.axis=2,xlab="",ylab=yaxis_label,ylim=my_ylim)
+  
+  # Restore default clipping rect
+  par(mar=c(5, 4, 4, 2) + 0.1)	
+  
+  return(q)
+}
+
+
+
+##############################
+## XbarI PLOT 2 - PREP DATA ## 
+##############################
 xbarI_plot2_formatData = function(rdata,columnOfInterest,USER) 
 {
 	# plot 2
@@ -509,40 +500,42 @@ xbarI_plot2_formatData = function(rdata,columnOfInterest,USER)
 	monthLabels = seq(as.Date(thisMonth,format="%m/%d/%Y"),length=4,by="-1 months")
 	plotDividerLabels = c()
 	
-	if(format(monthLabels[4],format="%Y")==format(monthLabels[3],format="%Y")){
-		plotDividerLabels[1] = paste(format(monthLabels[4],format="%b"),format(monthLabels[3],format="%b %Y"),sep=" - ")
-	}else{
-		plotDividerLabels[1] = paste(format(monthLabels[4],format="%b %Y"),format(monthLabels[3],format="%b %Y"),sep=" - ")
-	}
-	if(format(monthLabels[2],format="%Y")==format(monthLabels[1],format="%Y")) {
-		plotDividerLabels[2] = paste(format(monthLabels[2],format="%b"),format(today,format="%b %d, %Y"),sep=" - ")
-	}else{
-		plotDividerLabels[2] = paste(format(monthLabels[2],format="%b %Y"),format(today,format="%b %d, %Y"),sep=" - ")
-	}
-
+  # format human-readable date intervals
+  # if the year is the same on both sides of hyphen (both sides of the interval), 
+  # only display year on one side of hyphen (i.e. "Jan - Feb 2013" vs "Dec 2012 - Jan 2013")
+	plotDividerLabels[1] = ifelse(format(monthLabels[4],format="%Y")==format(monthLabels[3],format="%Y"),
+	                                paste(format(monthLabels[4],format="%b"),format(monthLabels[3],format="%b %Y"),sep=" - "),
+	                                paste(format(monthLabels[4],format="%b %Y"),format(monthLabels[3],format="%b %Y"),sep=" - ")
+                                )
+	plotDividerLabels[2] = ifelse(format(monthLabels[2],format="%Y")==format(monthLabels[1],format="%Y"),
+	                                paste(format(monthLabels[2],format="%b"),format(today,format="%b %d, %Y"),sep=" - "),
+	                                paste(format(monthLabels[2],format="%b %Y"),format(today,format="%b %d, %Y"),sep=" - ")
+                                )
 	
 	# get data starting from 3 months ago
-    qdata = subset(rdata, !is.na(rdata[,columnOfInterest]) & as.numeric(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) >= as.Date(monthLabels[4]), select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
-    if(nrow(qdata)>0)
-    {
-    	if(USER=='state_user'){
-    		rownames(qdata)=NULL
-    	}else{
-    		rownames(qdata)=qdata$record
-    	}
-    	qdata1 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[4]) & as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))<as.Date(monthLabels[2]),select=c(columnOfInterest))
-        qdata2 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[2]),select=columnOfInterest)
-    }else{
-    	qdata1 = NULL
-    	qdata2 = NULL
-    }
-    	
-    
-    myreturn = list('qdata'=qdata,'monthLabels'=monthLabels,'plotDividerLabels'=plotDividerLabels,'qdata1'=qdata1,'qdata2'=qdata2)
-    
-    return(myreturn)
-
+  qdata = subset(rdata, !is.na(rdata[,columnOfInterest]) & as.numeric(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) >= as.Date(monthLabels[4]), select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
+  if(nrow(qdata)>0)
+  {
+  	if(USER=='state_user'){
+  		rownames(qdata)=NULL
+  	}else{
+  		rownames(qdata)=qdata$record
+  	}
+  	qdata1 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[4]) & as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))<as.Date(monthLabels[2]),select=c(columnOfInterest))
+    qdata2 = subset(qdata,as.numeric(as.Date(as.character(qdata$dob_fake),format="%m/%d/%y"))>=as.Date(monthLabels[2]),select=columnOfInterest)
+  }else{
+  	qdata1 = NULL
+  	qdata2 = NULL
+  }
+  
+  myreturn = list('qdata'=qdata,'monthLabels'=monthLabels,'plotDividerLabels'=plotDividerLabels,'qdata1'=qdata1,'qdata2'=qdata2)
+  
+  return(myreturn)
 }
+
+#####################
+## XbarI MEAN PLOT ## 
+#####################
 xbarI_mean_plot = function(rdata,columnOfInterest,yaxis_label)
 {
 	my_subset = subset(rdata,!is.na(rdata[,columnOfInterest]) & !is.na(rdata$month),select=c(columnOfInterest,'month'))
@@ -564,7 +557,9 @@ xbarI_mean_plot = function(rdata,columnOfInterest,yaxis_label)
   return(q)
 }
 
-
+#######################
+## STACKED BAR CHART ## 
+#######################
 stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 {
 	tempData = subset(rdata,select=c("month",columnOfInterest))
@@ -657,6 +652,10 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 	cat(paste("<center><img src='",pngFileName,"'></center><br>",sep=""));
 }
 
+
+#######################
+## TABLE OF OUTLIERS ## 
+#######################
 outlierTable = function(alldata,USER,columnOfInterest,mylabel,yaxis_label,qcc_object){
 	if(yaxis_label=='mmHg'){
 		my_outliertable_condition = alldata[,columnOfInterest]>qcc_object$limits[,"UCL"] | alldata[,columnOfInterest]<qcc_object$limits[,"LCL"] 
@@ -681,7 +680,7 @@ outlierTable = function(alldata,USER,columnOfInterest,mylabel,yaxis_label,qcc_ob
 			cat("</center><br>")
 		}else
 		{
-			cat("Congratulations, there are no outliers (cases where the ",tolower(yaxis_label),my_outliertable_condition_text,") in the data for your center.<br>",sep="")
+			cat("<li>Congratulations, there are no outliers (cases where the ",tolower(yaxis_label),my_outliertable_condition_text,") in the data for your center.</li><br>",sep="")
 		}
 
 		cat("<br>")
@@ -689,6 +688,9 @@ outlierTable = function(alldata,USER,columnOfInterest,mylabel,yaxis_label,qcc_ob
 	
 }
 
+#############################################
+## ADD A "SHIFT" TO A PCHART OR XBAR CHART ## 
+#############################################
 addShift = function(points,groupSizes,monthList,fromDate,toDate,qcc_type="p",dataSet=NA,columnOfInterest=NA)
 {
   monthKey = rbind(seq(1:length(monthList)))
@@ -778,7 +780,9 @@ addShift = function(points,groupSizes,monthList,fromDate,toDate,qcc_type="p",dat
 	return(chunkqcc)
 }
 					
-
+#############################
+## MCHART (XBAR MEAN PLOT) ## 
+#############################
 mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
 {
   cat("<br><li>The following figure is an xbar mean plot grouped by the infant's month of birth. Control limits are calculated using the following formula: CL &plusmn; 3*SD. Sample SD's vary according to sample size.</li>")
