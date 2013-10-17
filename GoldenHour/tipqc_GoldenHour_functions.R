@@ -13,9 +13,6 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
   y_tmp = c()
 	numList = c()
 	denomList = c()
-	#monthList = unique(rdata$month[!is.na(rdata$month)])
-	months = seq(as.Date("2012-05-01"), Sys.Date(), by="1 month")
-	monthList = format(months,"%m/%Y")
 	addControlLimits=0
 	
 	# get labels for legend
@@ -31,80 +28,14 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 			colNum = match(columnList[column],names(rdata)) #get the column number of the column name
 			denominator = sum(rdata$month==monthList[month],na.rm=TRUE) # sum total number of data points for given month
 			# set numerator
-			switch(option,
-	       '1'={
-	         #sum the number of data points in given column for given month that are not NA
-	         numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
-	       },
-	       '2'={
-	         #sum the number of data points in given column for given month that are equal to "1"
-	         numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
-	       },
-	       '3'={
-	         fio2_5_colNum = match("fio2_5",names(rdata)) #get the column number of the column name
-	         #sum the number of data points where fio2>.21 & sao2>=80 & sa02<=85 & fio2!=1
-	         s1 = subset(rdata,rdata$fio2_5>.21,select=c("fio2_5","sao2_5","month"))
-	         s2 = subset(s1,s1$sao2_5>=80 & !is.na(month))
-	         s3 = subset(s2,s2$sao2_5<=85)
-	         s4 = subset(s3,s3$fio2_5!=1)
-	         # numerator for given month
-	         numerator = 0
-	         if(nrow(s4)>0)
-	         {
-	           for(i in 1:nrow(s4))
-	           {
-	             if(s4[i,3]==monthList[month])
-	               numerator = numerator+1
-	           }
-	         }
-	         
-	         # total number of data points where fio2>.21 for given month
-	         denominator = sum(rdata[,fio2_5_colNum][rdata$month==monthList[month]]>.21,na.rm=TRUE)
-	         #
-	         mylabels = c()
-	         mytext = "Total No. Records \n with FiO2>0.21 (n):";
-	         addControlLimits=1
-	       },
-	       '4'={
-	         numerator = sum(rdata[,colNum][rdata$month==monthList[month]]>=36 & rdata[,colNum][rdata$month==monthList[month]]<=37.5,na.rm=TRUE)
-	         addControlLimits=1
-	       },
-	       '5'={
-	         #sum the number of data points where surfactant received
-	         numerator = sum(rdata[,'surfactant_received'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
-	         #sum the number of data points where surfactant eligible
-	         denominator = sum(rdata[,'surfactant_eligible'][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
-	         mytext = "Total No. Surfactant \nEligible Records (n):";
-	         addControlLimits=1
-	         
-	       },
-	       '6'={
-	         # OXYGEN MANAGEMENT PCHART 1
-	         # denominator - all cases EXCEPT where sao2 and/or fio2 are NA, and EXCEPT where room air and above average
-	         dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5))
-	         dSub = subset(dSub,!(dSub$sao2_5>=95 & dSub$fio2_5==.21))
-	         denominator = nrow(dSub)
-	         #numerator - 75%<SaO2<95% (sao2 & fio2 may NOT be NA)
-	         numerator = nrow(subset(dSub,dSub$sao2_5>75 & dSub$sao2_5<95,select=c("sao2_5")))	
-	         addControlLimits=1	
-	         #expand bottom margin
-	         par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))
-	       },
-	       '7'={
-	         # OXYGEN MANAGEMENT PCHART 2
-	         # denominator: all cases where fio2>.21 (sao2 & fio2 may NOT be NA)
-	         dSub = subset(monthSubset,!is.na(monthSubset$sao2_5) & !is.na(monthSubset$fio2_5) & monthSubset$fio2_5 > .21, select=c('sao2_5','fio2_5','month'))
-	         denominator = nrow(dSub)
-	         #numerator: 80%<=SaO2<=85% and fio2>.21 (sao2 & fio2 may NOT be NA)
-	         numerator = nrow(subset(dSub,dSub$sao2_5>=80 & dSub$sao2_5<=85,select=c("sao2_5","fio2_5","month")))	
-	         addControlLimits=1	
-	         #expand bottom margin
-	         par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(7,7,0,25))	
-	         
-	       },	
-        {
-          #default
+			switch(as.character(option),
+        '1'={
+          #sum the number of data points in given column for given month that are not NA
           numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
+        },
+        '2'={
+          #sum the number of data points in given column for given month that are equal to "1"
+          numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
         }
 			)				
 			percent = ifelse(denominator==0,NaN,numerator/denominator*100)
@@ -127,6 +58,8 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 	}
   rm(y_tmp)
   
+  
+  # if any points on plot < lowerYlim, adjust lowerYlim
 	if(lowerYlim==30){
 		if(length(y[!is.nan(y)&!is.na(y)])>0){
 			lowerYlim = min(30,floor(min(y[!is.nan(y)&!is.na(y)])/10)*10)
@@ -137,63 +70,55 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 	
 	
 	# begin creating pchart	
-			plot(myplotdata[,columnList[1]],type="o", ylim=c(lowerYlim,100), col=colors[1] ,axes=FALSE,ann=FALSE)
-			box(lty=1,col='black')
-			# Make x axis 
-			axis(1, at=1:length(monthList), lab=monthList)
-			axis(2,las=1)
-			# Label the x and y axes
-			title(xlab= "Month")
-			title(ylab= "Percent")
-			# Create a title with a bold font
-			title(main=title, font.main=2)
-			# add Pilot date and kickoff date
-			addPilotAndKickoffDates(monthList)			
-				
-			# Create a legend
-			if(length(columnList)!=1)
-			{	
-				# put legend on chart			
-				#legend(1.5,30,mylabels, cex=.8,col=colors[1:length(mylabels)],lty=1,bg="white")
-				# put legend outside chart
-				#legend(length(monthList)+.5,100,mylabels, cex=.8,col=colors[1:length(mylabels)],lty=1,bg="white")
-				legend("topright",inset=c(-.3,0),mylabels, cex=.8,col=colors[1:length(mylabels)],lty=1,bg="white")
-			}		
-				
-			# add control limits
-			if(addControlLimits)
-			{
-				## pilot date (5/1/2012-8/31/2012)
-				addShift(points=numList,groupSizes=denomList,monthList,"2012-05-01","2012-09-01")
-				
-				if(option==5 && USER=="state_user")
-				{
-					# 09/2012 - 01/2013
-					addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","2013-01-01")
-					
-					# 01/2013 - forward
-					addShift(points=numList,groupSizes=denomList,monthList,"2013-01-01","end")
-	
-					
-				}else{				
-					## kick-off date forward
-					addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","end")					
-				}
-				
-			}
-
-		###############
-    if(length(columnList)>1){
-      for(column in 2:length(columnList))
-      {
-        lines(myplotdata[,columnList[column]],type="o",col=colors[column])
-      }
-    }	
+	plot(myplotdata[,columnList[1]],type="o", ylim=c(lowerYlim,100), col=colors[1] ,axes=FALSE,ann=FALSE)
+	box(lty=1,col='black')
+	# Make x axis 
+	axis(1, at=1:length(monthList), lab=monthList)
+	axis(2,las=1)
+	# Label the x and y axes
+	title(xlab= "Month")
+	title(ylab= "Percent")
+	# Create a title with a bold font
+	title(main=title, font.main=2)
+	# add Pilot date and kickoff date
+	addPilotAndKickoffDates(monthList)			
 		
+	# for plots with >1 line ONLY
+	if(length(columnList)!=1)
+	{	
+	  # Create a legend
+		legend("topright",inset=c(-.3,0),mylabels, cex=.8,col=colors[1:length(mylabels)],lty=1,bg="white")
+    # add remaining lines
+		for(column in 2:length(columnList))
+		{
+		  lines(myplotdata[,columnList[column]],type="o",col=colors[column])
+		}
+	}		
+		
+	# add control limits
+	if(addControlLimits)
+	{
+		## pilot date (5/1/2012-8/31/2012)
+		addShift(points=numList,groupSizes=denomList,monthList,"2012-05-01","2012-09-01")
+		
+		if(option==5 && USER=="state_user")
+		{
+			# 09/2012 - 01/2013
+			addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","2013-01-01")
+			
+			# 01/2013 - forward
+			addShift(points=numList,groupSizes=denomList,monthList,"2013-01-01","end")			
+		}else{				
+			## kick-off date forward
+			addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","end")					
+		}
+		
+	}
+
+###############		
 		
 	# add n at the bottom
-	bottomText = ifelse(exists("mytext"),mytext,"Total No. Records (n):")
-	mtext(side = 1, text = bottomText, at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
+	mtext(side = 1, text = "Total No. Records (n):", at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
   axis(side=1,at=1:length(monthList),labels=denomList,hadj=1,tick = FALSE,cex.axis=.85,line=3,font=2) 
 	
 	# add No. clinics participating at the top
@@ -205,60 +130,15 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 			clinicCount = c(clinicCount,length(unique(rdata$clinic[rdata$month==monthList[month]])))
 		}
 		mtext(side = 3, text = "No. centers contributing data:", at = 0.75, adj = 1, line = 0, cex = 0.85,font=2)
-		 axis(side=3,at=1:length(monthList),labels=clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=-1,font=2) 
+	  axis(side=3,at=1:length(monthList),labels=clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=-1,font=2) 
 	}	
-	if(option==6){
-		# add "Room air and above average" margin
-		mtext(side = 1, text = "Room air and above average:", at = 0.75, adj = 1, line = 5, cex = 0.85, font=2)
-		roomAirAboveAverage = c()
-		for(month in 1:length(monthList)){
-			monthSubset = rdata[rdata$month==monthList[month],]
-			# number of infants where saO2>=95% and FiO2=.21
-			mycount = nrow(subset(monthSubset,monthSubset$sao2_5>=95 & !is.na(monthSubset$sao2_5) & monthSubset$fio2_5 == .21 & !is.na(monthSubset$fio2_5),select=c('sao2_5','fio2_5','month')))
-			roomAirAboveAverage = c(roomAirAboveAverage,mycount)
-		}
-		axis(side=1,at=1:length(monthList),labels=roomAirAboveAverage,hadj=1,tick = FALSE,cex.axis=.85,line=4,font=2) 
-		
-		# add missing sa02/fio2 count in margin
-		mtext(side = 1, text = "Missing SaO2 and/or FiO2:", at = 0.75, adj = 1, line = 6, cex = 0.85, font=2)
-		missing = c()
-		for(month in 1:length(monthList)){
-			monthSubset = rdata[rdata$month==monthList[month],]
-			# number of infants where saO2 and/or FiO2 is NA
-			mycount = nrow(subset(monthSubset,is.na(monthSubset$sao2_5) | is.na(monthSubset$fio2_5),select=c('sao2_5','fio2_5','month')))
-			missing = c(missing,mycount)
-		}
-		axis(side=1,at=1:length(monthList),labels=missing,hadj=1,tick = FALSE,cex.axis=.85,line=5,font=2) 
-		
-	}else if(option==7){
-		# add "Max O2 and below target" margin
-		mtext(side = 1, text = "Max O2 and below target:", at = 0.75, adj = 1, line = 5, cex = 0.85, font=2)
-		maxO2belowTarget = c()
-		for(month in 1:length(monthList)){
-			monthSubset = rdata[rdata$month==monthList[month],]
-			# number of infants where saO2<85% and FiO2=1.0
-			mycount = nrow(subset(monthSubset,monthSubset$sao2_5<85 & !is.na(monthSubset$sao2_5) & monthSubset$fio2_5 == 1 & !is.na(monthSubset$fio2_5),select=c('sao2_5','fio2_5','month')))
-			maxO2belowTarget = c(maxO2belowTarget,mycount)
-		}
-		axis(side=1,at=1:length(monthList),labels=maxO2belowTarget,hadj=1,tick = FALSE,cex.axis=.85,line=4,font=2) 
-		
-		# add missing sa02/fio2 count in margin
-		mtext(side = 1, text = "Missing SaO2 and/or FiO2:", at = 0.75, adj = 1, line = 6, cex = 0.85, font=2)
-		missing = c()
-		for(month in 1:length(monthList)){
-			monthSubset = rdata[rdata$month==monthList[month],]
-			# number of infants where saO2 and/or FiO2 is NA
-			mycount = nrow(subset(monthSubset,is.na(monthSubset$sao2_5) | is.na(monthSubset$fio2_5),select=c('sao2_5','fio2_5','month')))
-			missing = c(missing,mycount)
-		}
-		axis(side=1,at=1:length(monthList),labels=missing,hadj=1,tick = FALSE,cex.axis=.85,line=5,font=2)
-
-		
-	}
-	
+			
 	# Restore default clipping rect
 	par(mar=c(5, 4, 4, 2) + 0.1)		
-			
+    
+  myreturn = list('plotdata'=myplotdata)
+  
+  return(myreturn)			
 }
 
 ### Data Entry Checks ###
@@ -394,8 +274,8 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 		# add month labels
 		alldata$order = seq(1:nrow(alldata))
 		first_record_each_month = qcc.groups(alldata$order,format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
-		monthList = unique(format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%b %Y"))
-		axis(1,las=2,line=-3.5,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)
+		monthLabels = unique(format(as.Date(as.character(alldata$dob_fake),format="%m/%d/%y"),format="%b %Y"))
+		axis(1,las=2,line=-3.5,at=first_record_each_month,labels=monthLabels,cex.axis=.8,lwd=0)
 	dev.off()
 
 	# plot 2
@@ -413,8 +293,8 @@ xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Mi
 			allplot2data = plot2data$qdata
 			allplot2data$order = seq(1:nrow(allplot2data))
 			first_record_each_month = qcc.groups(allplot2data$order,format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%Y-%m"))[,1]
-			monthList = unique(format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%b %Y"))
-			axis(1,las=2,line=-2.3,at=first_record_each_month,labels=monthList,cex.axis=.8,lwd=0)                                 
+			monthLabels = unique(format(as.Date(as.character(allplot2data$dob_fake),format="%m/%d/%y"),format="%b %Y"))
+			axis(1,las=2,line=-2.3,at=first_record_each_month,labels=monthLabels,cex.axis=.8,lwd=0)                                 
 		dev.off()		
 		plot2_ifExists = paste("<center><img class='page-break-none' src='",png_filename2,"'></center></li>",sep="")
 	}else{
@@ -540,13 +420,13 @@ xbarI_mean_plot = function(rdata,columnOfInterest,yaxis_label)
 {
 	my_subset = subset(rdata,!is.na(rdata[,columnOfInterest]) & !is.na(rdata$month),select=c(columnOfInterest,'month'))
 	colnames(my_subset)=c(columnOfInterest,'gmonth')
-	monthList = unique(my_subset$gmonth)
-	monthKey = rbind(seq(1:length(monthList)))
-	colnames(monthKey)=monthList
+	monthListSubset = unique(my_subset$gmonth) #use global variable
+	monthKey = rbind(seq(1:length(monthListSubset)))
+	colnames(monthKey)=monthListSubset
 	my_subset$monthKey = monthKey[,my_subset$gmonth]
 	
 	my_subset_groups = qcc.groups(my_subset[,columnOfInterest],my_subset$monthKey)
-	rownames(my_subset_groups) = monthList
+	rownames(my_subset_groups) = monthListSubset
 	# exclude rows where group size is <2
 	my_subset_groups = my_subset_groups[which(rowSums(!is.na(my_subset_groups))>1),]
 	q = qcc(my_subset_groups,type='xbar')
@@ -564,26 +444,25 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 {
 	tempData = subset(rdata,select=c("month",columnOfInterest))
 	tempData_notNA = subset(tempData,!is.na(tempData[,columnOfInterest]))
-	#monthList = unique(rdata$month[!is.na(rdata$month)])
 	months = seq(as.Date("2012-09-01"), Sys.Date(), by="1 month")
-	monthList = format(months,"%m/%Y")
+	monthListFromPilot = format(months,"%m/%Y")
 	denomList = c()
 
 	plotData = data.frame();
-	for(month in 1:length(monthList))
+	for(month in 1:length(monthListFromPilot))
 	{
-			denominator = sum(tempData$month==monthList[month])
+			denominator = sum(tempData$month==monthListFromPilot[month])
 			
 			# NO
-			plotData[1,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]=="No") / denominator*100
+			plotData[1,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthListFromPilot[month]]=="No") / denominator*100
 			# YES 
-			plotData[2,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthList[month]]=="Yes") / denominator*100
+			plotData[2,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthListFromPilot[month]]=="Yes") / denominator*100
 			# NA
-			plotData[3,month] = sum(is.na(tempData[,2][tempData$month==monthList[month]])) / denominator*100
+			plotData[3,month] = sum(is.na(tempData[,2][tempData$month==monthListFromPilot[month]])) / denominator*100
 
 			denomList = c(denomList,denominator)
 	}
-	colnames(plotData) = monthList
+	colnames(plotData) = monthListFromPilot
 	rownames(plotData) = c("No","Yes","N/A")
 
 	h = 450					
@@ -634,9 +513,9 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 	if(USER == "state_user")
 	{
 			clinicCount = c()
-			for(month in 1:length(monthList))
+			for(month in 1:length(monthListFromPilot))
 			{
-					clinicCount = c(clinicCount,length(unique(rdata$clinic[rdata$month==monthList[month]])))
+					clinicCount = c(clinicCount,length(unique(rdata$clinic[rdata$month==monthListFromPilot[month]])))
 			}
 			mtext(side = 3, text = "No. centers contributing data:", at = 0.0, adj = 1, line = 1, cex = 0.85,font=2)
 			 axis(side=3,at=b,labels=clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=0,font=2) 
@@ -793,7 +672,7 @@ mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
   
   data_remove_nas = subset(data,!is.na(data[,column]))
   
-  monthList = format.Date(seq.Date(from = as.Date("2012-05-01"),to = Sys.Date(), by = "month"), "%m/%Y")
+  #monthList = format.Date(seq.Date(from = as.Date("2012-05-01"),to = Sys.Date(), by = "month"), "%m/%Y") #use global variable
   
   # get monthly means & counts
   monthly_means = aggregate(data_remove_nas[,column],list(month=data_remove_nas$month),mean)
@@ -848,6 +727,65 @@ mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
 
 
 
+pchart_data = function(cleaned_data,columnOfInterest,numerator_function){
+  
+  # calculate numerator and denominator
+  denom = aggregate(cleaned_data[,columnOfInterest],by=list(month=cleaned_data$month),length)
+  data_columnOfInterest_notNA = subset(cleaned_data,!is.na(cleaned_data[,columnOfInterest]))
+  numer = aggregate(data_columnOfInterest_notNA[,columnOfInterest],by=list(month=data_columnOfInterest_notNA$month),numerator_function)
+  clinicCount = aggregate(cleaned_data$clinic,by=list(month=cleaned_data$month),function(x){return(length(unique(x)))})
+  
+  # put together dataframe of data per month
+  dataper <- data.frame(month = monthList, stringsAsFactors = FALSE)
+  dataper$month <- factor(dataper$month, levels = unique(dataper$month),ordered = TRUE)
+  dataper = merge(dataper,clinicCount,by="month",all=TRUE)
+  dataper = merge(dataper,numer, by = "month", all = TRUE)
+  dataper = merge(dataper,denom,by="month",all=TRUE)  
+  colnames(dataper)=c("month","clinicCount","numerator","denominator")
+  # order by month
+  dataper = dataper[order(dataper$month),]
+  # counts of NA are actually counts of zero
+  dataper[is.na(dataper$denominator),"denominator"]=0 
+  dataper[is.na(dataper$numerator),"numerator"]=0 
+  # calculate percentages  
+  dataper$percent = ifelse(dataper$denominator==0,NaN,dataper$numerator/dataper$denominator*100)
+  
+  return(dataper)
+}
 
+pchart_plot = function(dataper,title,shifts="default",nlabel="Total no. records (n):",parmar=c(5, 4, 4, 2) + 0.1+c(0,7,0,25)){
+  # Expand right side of clipping rect to make room for the legend
+  par(xpd=T, mar=parmar)
+  # begin creating pchart  
+  plot(dataper$percent,type="o", ylim=c(0,100), ,axes=FALSE,ann=FALSE)
+  box(lty=1,col='black')
+  # Make x axis 
+  axis(1, at=1:length(dataper$month), lab=dataper$month)
+  axis(2,las=1)
+  # Label the x and y axes
+  title(xlab= "Month")
+  title(ylab= "Percent")
+  # Create a title with a bold font
+  title(main=title, font.main=2)
+  # add Pilot date and kickoff date
+  addPilotAndKickoffDates(dataper$month)  
+  
+  ## pilot date (5/1/2012-8/31/2012)
+  addShift(points=dataper$numerator,groupSizes=dataper$denominator,dataper$month,"2012-05-01","2012-09-01")
+  if(shifts=="default"){    
+    ## kick-off date forward
+    addShift(points=dataper$numerator,groupSizes=dataper$denominator,dataper$month,"2012-09-01","end")
+  }
+  
+  # add n text at bottom
+  mtext(side = 1, text = nlabel, at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
+  axis(side=1,at=1:length(dataper$month),labels=dataper$denominator,hadj=1,tick = FALSE,cex.axis=.85,line=3,font=2) 
+  
+  # add No. clinics participating at the top (if state user)
+  if(USER == "state_user"){
+    mtext(side = 3, text = "No. centers contributing data:", at = 0.75, adj = 1, line = 0, cex = 0.85,font=2)
+    axis(side=3,at=1:length(monthList),labels=dataper$clinicCount,hadj=1,tick = FALSE,cex.axis=.85,line=-1,font=2) 
+  }
+}
 
 

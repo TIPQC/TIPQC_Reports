@@ -78,3 +78,8 @@ label(rdata$discharge_date_fake)="Fake Date of discharge (MM/01/YY)"
 #add month column (calculated using dob)
 rdata$month = format(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y"), format="%m/%Y")
 
+# set GLOBAL variables (more are added in html file)
+USER <<- USER
+rdata <<- rdata
+monthList <<- format(seq(as.Date("2012-05-01"), Sys.Date(), by="1 month"),"%m/%Y")
+
