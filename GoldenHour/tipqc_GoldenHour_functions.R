@@ -242,7 +242,7 @@ addPilotAndKickoffDates<-function(monthList)
 ###################
 ## XbarI SECTION ## 
 ###################
-xbarI_section = function(rdata,USER,columnOfInterest,h=480,w=850,yaxis_label="Minutes of Life")
+xbarI_section = function(rdata,columnOfInterest,h=480,w=850,yaxis_label="Minutes of Life")
 {	
   # get all data where columnOfInterest is not missing
   alldata = subset(rdata,!is.na(rdata[,columnOfInterest]) ,select=c("clinic","study_id",columnOfInterest,"dob_fake","record"))
@@ -662,7 +662,7 @@ addShift = function(points,groupSizes,monthList,fromDate,toDate,qcc_type="p",dat
 #############################
 ## MCHART (XBAR MEAN PLOT) ## 
 #############################
-mchart <- function(data,column,USER,Ylim=c(0,100),yaxis_label="Minutes of Life")
+mchart <- function(data,column,Ylim=c(0,100),yaxis_label="Minutes of Life")
 {
   cat("<br><li>The following figure is an xbar mean plot grouped by the infant's month of birth. Control limits are calculated using the following formula: CL &plusmn; 3*SD. Sample SD's vary according to sample size.</li>")
   title = label(data[,column])

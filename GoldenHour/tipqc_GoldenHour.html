@@ -303,7 +303,7 @@ begin.times <- format(begin.time, "%a %b %d, %Y at
             columnList = c('mob','yob','pre_resusc_checklist','pre_resusc_briefing','post_resusc_briefing')
   					option = 1
   					lowerYlim = 30
-  					pchart(rdata,columnList,title,option,USER,lowerYlim)										
+  					chart1_plotdata = pchart(rdata,columnList,title,option,lowerYlim)										
 					dev.off()
           
           previous.time = end.time
@@ -314,7 +314,7 @@ begin.times <- format(begin.time, "%a %b %d, %Y at
 					
 					# chart 2
 					png('pchart_completion2.png',height=h,width=w)
-					  pchart(rdata,c('apgar_1','apgar_5','fio2_5','sao2_5'),title,1,USER,lowerYlim)
+					  pchart(rdata,c('apgar_1','apgar_5','fio2_5','sao2_5'),title,1,lowerYlim)
 					dev.off()
           
 previous.time = end.time
@@ -327,7 +327,7 @@ previous.time = end.time
           png('pchart_completion3.png',height=h,width=w)
             nicu_subset <<- subset(rdata,rdata$nicu=='1')
             columnList = c('ega','birthweight','parents_commun','admit_temp','surfactant_eligible')
-  					pchart(nicu_subset,columnList,title,1,USER,lowerYlim)
+  					pchart(nicu_subset,columnList,title,1,lowerYlim)
 					dev.off()
 previous.time = end.time
   end.time<-Sys.time()
@@ -337,7 +337,7 @@ previous.time = end.time
           
 					# chart 4
 					png('pchart_completion4.png',height=h,width=w)
-  					pchart(nicu_subset,c('iv_access_obtained','glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code','pco2_indicated'),title,1,USER,lowerYlim)
+  					pchart(nicu_subset,c('iv_access_obtained','glucose_win60','glucose_iv_started','antibiotics_ordered','resp_support_code','pco2_indicated'),title,1,lowerYlim)
 					dev.off()
  previous.time = end.time
   end.time<-Sys.time()
@@ -376,7 +376,7 @@ previous.time = end.time
   				# Expand right side of clipping rect to make room for the legend
   				par(xpd=T, mar=par()$mar+c(0,7,0,7))			
   				# chart 1
-  				pchart(rdata,c("pre_resusc_checklist","pre_resusc_briefing"),title,"2",USER,30)
+  				pchart(rdata,c("pre_resusc_checklist","pre_resusc_briefing"),title,"2",30)
 				dev.off()
 				
 				# Restore default clipping rect
@@ -842,8 +842,6 @@ previous.time = end.time
                       addShift(points=option5$numerator,groupSizes=option5$denominator,monthList,"2012-09-01","2013-01-01")
                       # 01/2013 - forward
                       addShift(points=option5$numerator,groupSizes=option5$denominator,monthList,"2013-01-01","end")
-                      
-                      #pchart(nicu_subset,c('surfactant_eligible'),"Percent Surfactant Received",5,USER,0)
                     dev.off()
                     %>
                     <ul>
@@ -867,7 +865,7 @@ previous.time = end.time
                     <ul>
                         <li> 
                         <%
-                            xbarI_section(nicu_subset,USER,'iv_access_age')
+                            xbarI_section(nicu_subset,'iv_access_age')
                             # add monthly mean xbar chart
                               png('mchart_firstaccessobtained.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$iv_access_age))
@@ -875,7 +873,7 @@ previous.time = end.time
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
-                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                mchart_plotdata = mchart(nicu_subset,column,c(ymin,ymax))
                                 # if state user, add manually-entered shifts, otherwise no shifts
                                 if(USER=="state_user"){
                                   addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="2013-01-01","xbar",data_remove_nas,column)
@@ -907,7 +905,7 @@ previous.time = end.time
                     <ul>
                         <li> 
                         <%
-                            xbarI_section(nicu_subset,USER,'glucose_iv_started_age')
+                            xbarI_section(nicu_subset,'glucose_iv_started_age')
                             # add monthly mean xbar chart
                             
                               png('mchart_glucose_iv_started_age.png',height=h,width=w-100)
@@ -916,7 +914,7 @@ previous.time = end.time
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
-                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                mchart_plotdata = mchart(nicu_subset,column,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_glucose_iv_started_age.png"></center>')
@@ -939,14 +937,14 @@ previous.time = end.time
                     <ul>
                         <li> 
                         <%
-                            xbarI_section(nicu_subset,USER,'antibiotics_started')
+                            xbarI_section(nicu_subset,'antibiotics_started')
                               png('mchart_antibiotics_started.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$antibiotics_started))
                                 column = 'antibiotics_started'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="Minutes of Life")
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
-                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax))
+                                mchart_plotdata = mchart(nicu_subset,column,c(ymin,ymax))
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_antibiotics_started.png"></center>')
@@ -969,14 +967,14 @@ previous.time = end.time
                     <ul>
                         <li>
                         <%
-                            xbarI_section(nicu_subset,USER,'pco2_value',yaxis_label='mmHg')
+                            xbarI_section(nicu_subset,'pco2_value',yaxis_label='mmHg')
                               png('mchart_pco2_value.png',height=h,width=w-100)
                                 data_remove_nas = subset(nicu_subset,!is.na(nicu_subset$pco2_value))
                                 column = 'pco2_value'
                                 my_qcc = xbarI_mean_plot(nicu_subset,column,yaxis_label="mmHg")
                                 ymax = max(my_qcc$limits)+5
                                 ymin = min(my_qcc$limits)-5
-                                mchart_plotdata = mchart(nicu_subset,column,USER,c(ymin,ymax),yaxis_label="mmHg")
+                                mchart_plotdata = mchart(nicu_subset,column,c(ymin,ymax),yaxis_label="mmHg")
                                 addShift(points=mchart_plotdata$y,groupSizes=mchart_plotdata$count,monthList,fromDate="2012-05-01",toDate="end","xbar",data_remove_nas,column)
                               dev.off()
                               cat('<center><img class="page-break-none" src="mchart_pco2_value.png"></center>')
