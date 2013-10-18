@@ -1,68 +1,61 @@
 
 # set functions
+
+#######################################
+## Pchart For Multiple Plotted Lines ## 
+#######################################
 # Option 1 - numerator is % nonmissing fields
-# Option 2 - numerator is % fields that are "1"
-pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
+# Option 2 - numerator is % fields that are "Yes"
+#######################################
+pchart <- function(rdata,columnList,title,option,lowerYlim=0)
 {
 	# Expand right side of clipping rect to make room for the legend
 	par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(0,7,0,25))
-	#par(mar=c(5, 4, 4, 2) + 0.1)
-					
+	
+  # define variables
 	colors = c("black","blue","red","green","purple","orange","brown")
 	y = c()
   y_tmp = c()
 	numList = c()
 	denomList = c()
-	addControlLimits=0
-	
-	# get labels for legend
-	mylabels = c()
-	allLabels = label(rdata)
+	legendLabels = c()
+	allLabels = label(rdata)	
+  
+  # "option" determines the function that calculates the numerator
+	switch(as.character(option),
+    '1'={
+     #sum the number of data points in given column that are not NA
+     numerator_function = function(x){sum(!is.na(x))}
+    },
+    '2'={
+     #sum the number of data points in given column are equal to "Yes"
+     numerator_function = function(x){sum(x=="Yes",na.rm=TRUE)}
+    }
+	)	
+  
+  # calculate percentages to be plotted
 	for(column in 1:length(columnList))
 	{
-		mylabels = c(mylabels,allLabels[match(columnList[column],names(rdata))])
-		
-		for(month in 1:length(monthList))
-		{
-			monthSubset = rdata[rdata$month==monthList[month],]
-			colNum = match(columnList[column],names(rdata)) #get the column number of the column name
-			denominator = sum(rdata$month==monthList[month],na.rm=TRUE) # sum total number of data points for given month
-			# set numerator
-			switch(as.character(option),
-        '1'={
-          #sum the number of data points in given column for given month that are not NA
-          numerator = sum(!is.na(rdata[,colNum][rdata$month==monthList[month]]))
-        },
-        '2'={
-          #sum the number of data points in given column for given month that are equal to "1"
-          numerator = sum(rdata[,colNum][rdata$month==monthList[month]]=="Yes",na.rm=TRUE)
-        }
-			)				
-			percent = ifelse(denominator==0,NaN,numerator/denominator*100)
-				
-			y_tmp = c(y_tmp,percent)
-			y = c(y,percent) # make array of y values for plot
-			if(column==1)
-			{
-			  numList = c(numList,numerator)
-			  denomList = c(denomList,denominator)	
-			}
-		}
+		legendLabels = c(legendLabels,allLabels[match(columnList[column],names(rdata))])
+    pchartData = pchart_data(cleaned_data = rdata,columnOfInterest = columnList[column],numerator_function)
+		y_tmp = pchartData$percent
+		y=c(y,y_tmp)
+      
     if(column==1){
-      myplotdata = data.frame(y)
+      myplotdata = data.frame(y_tmp)
+      denomList = pchartData$denominator
       colnames(myplotdata)=columnList[1]
     }else{
       myplotdata[,columnList[column]] = y_tmp
     }  
 		y_tmp = c()
 	}
-  rm(y_tmp)
   
   
   # if any points on plot < lowerYlim, adjust lowerYlim
 	if(lowerYlim==30){
-		if(length(y[!is.nan(y)&!is.na(y)])>0){
-			lowerYlim = min(30,floor(min(y[!is.nan(y)&!is.na(y)])/10)*10)
+		if(sum(!is.nan(y),na.rm=TRUE)>0){
+			lowerYlim = min(30,floor(min(myplotdata)/10)*10)
 		}else{
 			lowerYlim = 30
 		}
@@ -81,42 +74,14 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 	# Create a title with a bold font
 	title(main=title, font.main=2)
 	# add Pilot date and kickoff date
-	addPilotAndKickoffDates(monthList)			
-		
-	# for plots with >1 line ONLY
-	if(length(columnList)!=1)
-	{	
-	  # Create a legend
-		legend("topright",inset=c(-.3,0),mylabels, cex=.8,col=colors[1:length(mylabels)],lty=1,bg="white")
-    # add remaining lines
-		for(column in 2:length(columnList))
-		{
-		  lines(myplotdata[,columnList[column]],type="o",col=colors[column])
-		}
-	}		
-		
-	# add control limits
-	if(addControlLimits)
+	addPilotAndKickoffDates(monthList)					
+  # Create a legend
+	legend("topright",inset=c(-.3,0),legendLabels, cex=.8,col=colors[1:length(legendLabels)],lty=1,bg="white")
+  # add remaining lines
+	for(column in 2:length(columnList))
 	{
-		## pilot date (5/1/2012-8/31/2012)
-		addShift(points=numList,groupSizes=denomList,monthList,"2012-05-01","2012-09-01")
-		
-		if(option==5 && USER=="state_user")
-		{
-			# 09/2012 - 01/2013
-			addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","2013-01-01")
-			
-			# 01/2013 - forward
-			addShift(points=numList,groupSizes=denomList,monthList,"2013-01-01","end")			
-		}else{				
-			## kick-off date forward
-			addShift(points=numList,groupSizes=denomList,monthList,"2012-09-01","end")					
-		}
-		
-	}
-
-###############		
-		
+	  lines(myplotdata[,columnList[column]],type="o",col=colors[column])
+	}			
 	# add n at the bottom
 	mtext(side = 1, text = "Total No. Records (n):", at = 0.75, adj = 1, line = 4, cex = 0.85, font=2)
   axis(side=1,at=1:length(monthList),labels=denomList,hadj=1,tick = FALSE,cex.axis=.85,line=3,font=2) 
@@ -135,10 +100,8 @@ pchart <- function(rdata,columnList,title,option,USER,lowerYlim=0)
 			
 	# Restore default clipping rect
 	par(mar=c(5, 4, 4, 2) + 0.1)		
-    
-  myreturn = list('plotdata'=myplotdata)
   
-  return(myreturn)			
+  return(myplotdata)			
 }
 
 ### Data Entry Checks ###
