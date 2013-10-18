@@ -95,80 +95,60 @@ begin.times <- format(begin.time, "%a %b %d, %Y at
                     <li><h3>Data Entry Checks</h3>
                         <% if(USER == "state_user")
                             {
-                                    cat("Following are counts of possible errors in the REDCap database records for all centers:<br/><br/>")
+                              cat("Following are counts of possible errors in the REDCap database records for all centers:<br/><br/>")
                             }else
-                                    cat("Please check your REDCap database records for the following possible data errors:<br/><br/><ul>") 
+                              cat("Please check your REDCap database records for the following possible data errors:<br/><br/><ul>") 
                             
                             # subset where infant was admitted to nicu
-                            rdata_nicu = subset(rdata,rdata$nicu==1)
+                            rdata_nicu <<- subset(rdata,rdata$nicu==1)
                             clinicList = unique(rdata$clinic)
+                            clinicList = clinicList[order(clinicList)]
 
-                            myTable = rbind(
-                                    dataChecks('dob',USER,rdata,c('study_id','mob','yob'),clinicList),
-                                    dataChecks('ega',USER,rdata_nicu,c('study_id','mob','yob','ega'),clinicList),
-                                    dataChecks('apgar',USER,rdata_nicu,c('study_id','mob','yob','apgar_1','apgar_5','apgar_10'),clinicList),
-                                    dataChecks('fio2',USER,rdata_nicu,c('study_id','mob','yob','fio2_5'),clinicList),
-                                    dataChecks('sao2',USER,rdata_nicu,c('study_id','mob','yob','sao2_5'),clinicList),
-                                    dataChecks('dod',USER,rdata_nicu,c('study_id','mob','yob','discharge_date_month','discharge_date_year'),clinicList)
+                            dataChecksTable = rbind(
+                              dataChecks('dob',USER,rdata,c('study_id','mob','yob'),clinicList),
+                              dataChecks('ega',USER,rdata_nicu,c('study_id','mob','yob','ega'),clinicList),
+                              dataChecks('apgar',USER,rdata_nicu,c('study_id','mob','yob','apgar_1','apgar_5','apgar_10'),clinicList),
+                              dataChecks('fio2',USER,rdata_nicu,c('study_id','mob','yob','fio2_5'),clinicList),
+                              dataChecks('sao2',USER,rdata_nicu,c('study_id','mob','yob','sao2_5'),clinicList),
+                              dataChecks('dod',USER,rdata_nicu,c('study_id','mob','yob','discharge_date_month','discharge_date_year'),clinicList)
                             )
+                            
                      
                             if(USER == "state_user")
                             {
-
-                                    clinicList = c(unique(rdata$clinic))
-                                    clinicList = clinicList[order(clinicList)]
-                                    rowLabels = c("A month/year of birth that is missing, occurring before May 2012, or occurring in the future",
-                                                        "A missing gestational age at delivery (if admitted to NICU)",
-                                                        "An APGAR score outside of the 0-10 range (if admitted to NICU)",
-                                                        "An FiO2 score outside of the 0.21-1.0 range (if admitted to NICU)",
-                                                        "An SaO2 score outside of the 0-100% range (if admitted to NICU)",
-                                                        "A month/year of discharge occurring before month/year of birth, >1 year after birth, or in the future (if admitted to NICU)")
-                                    #myxtable = print(xtable(myTable),type="html")
-                                    cat(paste("<table border=1>
-                                                    <tr>
-                                                            <th rowspan=2> 
-                                                                    Data Entry Check
-                                                            </th> 
-                                                            <th colspan=",length(clinicList),"> 
-                                                                    Participating Center 
-                                                            </th> 
-                                                            <th rowspan=2> 
-                                                                    Total 
-                                                            </th>
-                                                    </tr>
-                                                    <tr>
-                                            ",sep=""))
-                                    for(clinic in 1:length(clinicList))
-                                    {
-                                            cat(paste("<th>",clinicList[clinic],"</th>",sep=""))
-                                    }
-                                    cat("</tr>")
-
-                                    for(row in 1:nrow(myTable))
-                                    {
-                                            # Data Entry Check
-                                            cat(paste("<tr><td>",rowLabels[row],"</td>",sep=""))
-                                            # Counts for each clinic
-                                            for(col in 1:ncol(myTable))
-                                            {
-                                                    # if count > 0, mark red
-                                                    if(myTable[row,col]>0)
-                                                            span = paste("<span class='redtext'>",myTable[row,col],"</span>",sep="")
-                                                    else
-                                                            span = myTable[row,col]
-
-                                                    cat(paste("<td>",span,"</td>",sep=""))
-                                            }
-                                            # Total Column
-                                            # if count > 0, mark red
-                                                    if(sum(myTable[row,])>0)
-                                                            span = paste("<span class='redtext'>",sum(myTable[row,]),"</span>",sep="")
-                                                    else
-                                                            span = sum(myTable[row,])
-                                            cat(paste("<td>",span,"</td>",sep=""))
-                                            cat("</tr>")
-                                    }
-                                    cat("</table>")
+                              # add totals column
+                              dataChecksTable = cbind(dataChecksTable,rowSums(dataChecksTable))
+                              
+                              # add table row labels
+                              rowLabels = c("A month/year of birth that is missing, occurring before May 2012, or occurring in the future",
+                                "A missing gestational age at delivery (if admitted to NICU)",
+                                "An APGAR score outside of the 0-10 range (if admitted to NICU)",
+                                "An FiO2 score outside of the 0.21-1.0 range (if admitted to NICU)",
+                                "An SaO2 score outside of the 0-100% range (if admitted to NICU)",
+                                "A month/year of discharge occurring before month/year of birth, >1 year after birth, or in the future (if admitted to NICU)")
+                              
+                              # print html table with headers that span multiple columns
+                              cat(paste("<table border=1>
+                                          <tr>
+                                            <th rowspan=2> 
+                                              Data Entry Check
+                                            </th> 
+                                            <th colspan=",length(clinicList),"> 
+                                              Participating Center 
+                                            </th> 
+                                            <th rowspan=2> 
+                                              Total 
+                                            </th>
+                                          </tr>",sep=""))
+                              # clinic headers
+                              cat(paste("<tr><th>",apply(as.matrix(clinicList),2,paste,collapse="</th><th>&nbsp;"),"</th></tr>",sep="&nbsp"))
+                              
+                              # change color of numbers > 0 to red
+                              add_redText = function(x){if(!is.character(x) & x>0){return(paste0("<td><span class='redtext'>&nbsp",x,"</span></td>"))}else{return(paste0("<td>&nbsp",x,"</td>"))}}
+                              dataChecksTable_html = cbind(apply(as.matrix(rowLabels),c(1,2),add_redText),apply(dataChecksTable,c(1,2),add_redText))
+                              dataChecksTable_html = paste0("<tr>",apply(dataChecksTable_html,1,paste0,collapse=""),"</tr>")
+                              cat(dataChecksTable_html)
+                              cat("</table>")
                             }
 
                             # remove records with missing mob, since that messes up everything past this point
@@ -187,8 +167,7 @@ begin.times <- format(begin.time, "%a %b %d, %Y at
     end.time<-Sys.time()
     end.times <- format(end.time, "%a %b %d, %Y at %X")
     run.time<-difftime(end.time,previous.time,units="secs")
-    cat("Run time:", run.time,
-    'secs.<br/>') 
+    cat("Run time:", run.time,'secs.<br/>') 
   %>
 			<!-- ############################## 1.3 Data Completion #################################   -->
 			<li class="page-break-before"><h3>Data Completion</h3>
@@ -237,7 +216,7 @@ begin.times <- format(begin.time, "%a %b %d, %Y at
 						numRecordsFromKickoff = c(numRecordsFromKickoff,sum(numRecordsFromKickoff))
 						
 						# make HTML table
-						cat(paste("<table border=1 id='myTable'>
+						cat(paste("<table border=1>
               <thead>
                 <tr>
     							<th rowspan=2> 
