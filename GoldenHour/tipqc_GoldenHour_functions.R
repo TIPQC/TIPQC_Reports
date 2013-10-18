@@ -751,4 +751,18 @@ pchart_plot = function(dataper,title,shifts="default",nlabel="Total no. records 
   }
 }
 
+#############################################
+## Print Run Time to Page IF in Debug Mode ## 
+#############################################
+check_run_time=function(previous.time){
+  if(exists("debug_environment")){
+    end.time<-Sys.time()
+    end.times <- format(end.time, "%a %b %d, %Y at %X")
+    run.time<-difftime(end.time,previous.time,units="secs")
+    cat("<br/>Run time:", run.time,'secs.<br/>') 
+    
+    return(end.time)
+  }    
+}
+
 
