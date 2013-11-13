@@ -51,11 +51,10 @@ pchart <- function(rdata,columnList,title,option,lowerYlim=0)
 		y_tmp = c()
 	}
   
-  
   # if any points on plot < lowerYlim, adjust lowerYlim
 	if(lowerYlim==30){
 		if(sum(!is.nan(y),na.rm=TRUE)>0){
-			lowerYlim = min(30,floor(min(myplotdata)/10)*10)
+			lowerYlim = min(30,floor(min(y,na.rm=TRUE)/10)*10)
 		}else{
 			lowerYlim = 30
 		}
@@ -107,7 +106,7 @@ pchart <- function(rdata,columnList,title,option,lowerYlim=0)
 ### Data Entry Checks ###
 
  
-dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
+dataChecks <- function(dataCheckCategory,data,columnList)
 {
 	switch(dataCheckCategory, 
 				'dob'={
@@ -115,32 +114,34 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
           #current month
           current_month = format(Sys.Date(),"%m")
           current_year = format(Sys.Date(),"%Y")
-					condition = as.numeric(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y"))<as.Date("2012-05-01") | (rdata$month>current_month && rdata$yob > current_year)	 | is.na(rdata$dob_fake)	| rdata$dob_fake==""	
+					condition = as.numeric( (as.Date(as.character(data$dob_fake),format="%m/%d/%y"))<as.Date("2012-05-01") | (data$month>current_month && data$yob > current_year))	 |   (is.na(data$dob_fake)	| data$dob_fake=="")	
 					description = "A month/year of birth that is missing, occurring before May 2012, or occurring in the future" 
 				},
 				'ega'={
 					#missing ega
-					condition = is.na(rdata$ega)	
+					condition = is.na(data$ega)	
 					description = "A missing gestational age at delivery (if admitted to NICU)"
 				},
 				'apgar'={
 					#APGAR scores outside of the 0-10 range
-					condition = as.numeric(rdata$apgar_1) < 0 | as.numeric(rdata$apgar_1) > 10 | as.numeric(rdata$apgar_5) < 0 | as.numeric(rdata$apgar_5) > 10 | (is.na(rdata$apgar_10) == FALSE & (as.numeric(rdata$apgar_10) < 0 | as.numeric(rdata$apgar_10) > 10))
+					condition = (as.numeric(data$apgar_1) < 0 | as.numeric(data$apgar_1) > 10) | (as.numeric(data$apgar_5) < 0 | as.numeric(data$apgar_5) > 10) | (is.na(data$apgar_10) == FALSE & (as.numeric(data$apgar_10) < 0 | as.numeric(data$apgar_10) > 10))
 					description = "An APGAR score outside of the 0-10 range (if admitted to NICU)"
 				},
 				'fio2'={
 					#FiO2 score outside of the 0.21-1.0 range
-					condition = as.numeric(rdata$fio2_5) < .21 | as.numeric(rdata$fio2_5) > 1
+					condition = as.numeric(data$fio2_5) < .21 | as.numeric(data$fio2_5) > 1
 					description = "An FiO2 score outside of the 0.21-1.0 range (if admitted to NICU)"	  
 				},
 				'sao2'={
 					#SaO2 score outside of the 0-100% range
-					condition = as.numeric(rdata$sao2_5) < 0 | as.numeric(rdata$sao2_5) > 100	
+					condition = as.numeric(data$sao2_5) < 0 | as.numeric(data$sao2_5) > 100	
 					description = "An SaO2 score outside of the 0-100% range (if admitted to NICU)"				  
 				},
 				'dod'={
 					#month/year of discharge occuring before month/year of birth, more than a year after dob, or after today
-					condition = as.numeric(as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) < 0 | as.numeric(as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")) > 365 | 	as.numeric(Sys.Date() - as.Date(as.character(rdata$discharge_date_fake),format="%m/%d/%y"))<0
+					condition = (as.numeric(as.Date(as.character(data$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(data$dob_fake),format="%m/%d/%y")) < 0 | 
+                         as.numeric(as.Date(as.character(data$discharge_date_fake),format="%m/%d/%y") - as.Date(as.character(data$dob_fake),format="%m/%d/%y")) > 365) | 
+                      (as.numeric(Sys.Date() - as.Date(as.character(data$discharge_date_fake),format="%m/%d/%y"))<0)
 					description = "A month/year of discharge occurring before month/year of birth, >1 year after birth, or in the future (if admitted to NICU)" 
 				}
 			)		
@@ -155,7 +156,7 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
 		for(clinic in 1:length(clinicList))
 		{			
 			# subset the data by the given clinic
-			clinic_subset = subset(condition,rdata$clinic==clinicList[clinic])
+			clinic_subset = subset(condition,data$clinic==clinicList[clinic])
 			
 			clinic_iffyCount = c(clinic_iffyCount,sum(clinic_subset,na.rm=TRUE))
 		}
@@ -163,16 +164,16 @@ dataChecks <- function(dataCheckCategory,USER,rdata,columnList,clinicList)
 	}		
 	else
 	{		
-		dataSub = subset(rdata,condition, select = columnList)		
+	  dataSub = subset(data,condition, select = columnList ) 	
 		cat(paste("<li>",description,":</li>",sep=""))
 		if(iffyCount>0)
 		{
 			# get labels
 			mylabels = c()
-			allLabels = label(rdata)
+			allLabels = label(data)
 			for(mycolumn in 1:length(columnList))
 			{
-				mylabels = c(mylabels,allLabels[match(columnList[mycolumn],names(rdata))])
+				mylabels = c(mylabels,allLabels[match(columnList[mycolumn],names(data))])
 			}
 			colnames(dataSub) = mylabels
 			
@@ -262,7 +263,7 @@ xbarI_section = function(rdata,columnOfInterest,h=480,w=850,yaxis_label="Minutes
 		plot2_ifExists = paste("<center><img class='page-break-none' src='",png_filename2,"'></center></li>",sep="")
 	}else{
 	  plot2_ifExists = paste("<li>Your center does not have any data for ",mylabel," since ",format(as.Date(as.character(tail(alldata,1)$dob_fake,format="%m/%d/%y"),format="%Y-%m")),".</li>",sep="")
-	}                     
+	}  
 
   # print results to page
 	cat(section_explanatory_text)
@@ -635,14 +636,12 @@ mchart <- function(data,column,Ylim=c(0,100),yaxis_label="Minutes of Life")
   
   data_remove_nas = subset(data,!is.na(data[,column]))
   
-  #monthList = format.Date(seq.Date(from = as.Date("2012-05-01"),to = Sys.Date(), by = "month"), "%m/%Y") #use global variable
-  
   # get monthly means & counts
   monthly_means = aggregate(data_remove_nas[,column],list(month=data_remove_nas$month),mean)
   monthly_counts = aggregate(data_remove_nas[,column],list(month=data_remove_nas$month),length)
   dataper <- data.frame(month = monthList, stringsAsFactors = FALSE)
-  dataper$month <- factor(dataper$month, levels = unique(dataper$month),
-                          ordered = TRUE)
+  dataper$month <- factor(dataper$month, levels = unique(dataper$month),ordered = TRUE)
+  
   # organize all needed plot data in dataframe
   plotdata = merge(dataper, monthly_means, by = "month", all = TRUE)
   plotdata = merge(plotdata, monthly_counts, by = "month", all = TRUE) 
@@ -690,6 +689,9 @@ mchart <- function(data,column,Ylim=c(0,100),yaxis_label="Minutes of Life")
 
 
 
+################################################
+## Prep pchart data for plot with single line ## 
+################################################
 pchart_data = function(cleaned_data,columnOfInterest,numerator_function){
   
   # calculate numerator and denominator
@@ -712,10 +714,12 @@ pchart_data = function(cleaned_data,columnOfInterest,numerator_function){
   dataper[is.na(dataper$numerator),"numerator"]=0 
   # calculate percentages  
   dataper$percent = ifelse(dataper$denominator==0,NaN,dataper$numerator/dataper$denominator*100)
-  
+
   return(dataper)
 }
-
+###################################################
+## Plot Pchart with Single Line & Control Limits ## 
+###################################################
 pchart_plot = function(dataper,title,shifts="default",nlabel="Total no. records (n):",parmar=c(5, 4, 4, 2) + 0.1+c(0,7,0,25)){
   # Expand right side of clipping rect to make room for the legend
   par(xpd=T, mar=parmar)
@@ -755,7 +759,7 @@ pchart_plot = function(dataper,title,shifts="default",nlabel="Total no. records 
 ## Print Run Time to Page IF in Debug Mode ## 
 #############################################
 check_run_time=function(previous.time){
-  if(exists("debug_environment")){
+  if(exists("debug_mode")){
     end.time<-Sys.time()
     end.times <- format(end.time, "%a %b %d, %Y at %X")
     run.time<-difftime(end.time,previous.time,units="secs")
