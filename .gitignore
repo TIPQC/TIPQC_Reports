@@ -1,3 +1,7 @@
+# Project files
+*.Rproj
+*.Rproj.user*
+
 # History files
 .Rhistory
 
