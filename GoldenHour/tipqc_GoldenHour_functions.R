@@ -688,17 +688,21 @@ mchart <- function(data,column,Ylim=c(0,100),yaxis_label="Minutes of Life")
 }
 
 
-
 ################################################
 ## Prep pchart data for plot with single line ## 
 ################################################
 pchart_data = function(cleaned_data,columnOfInterest,numerator_function){
   
   # calculate numerator and denominator
-  denom = aggregate(cleaned_data[,columnOfInterest],by=list(month=cleaned_data$month),length)
-  data_columnOfInterest_notNA = subset(cleaned_data,!is.na(cleaned_data[,columnOfInterest]))
-  numer = aggregate(data_columnOfInterest_notNA[,columnOfInterest],by=list(month=data_columnOfInterest_notNA$month),numerator_function)
-  clinicCount = aggregate(cleaned_data$clinic,by=list(month=cleaned_data$month),function(x){return(length(unique(x)))})
+  if(nrow(cleaned_data)){
+    denom = aggregate(cleaned_data[,columnOfInterest],by=list(month=cleaned_data$month),length)
+    data_columnOfInterest_notNA = subset(cleaned_data,!is.na(cleaned_data[,columnOfInterest]))
+    numer = aggregate(data_columnOfInterest_notNA[,columnOfInterest],by=list(month=data_columnOfInterest_notNA$month),numerator_function)
+    clinicCount = aggregate(cleaned_data$clinic,by=list(month=cleaned_data$month),function(x){return(length(unique(x)))})
+  }else{
+    denom = numer = clinicCount = data.frame("11/2013",NA)
+    colnames(denom) = colnames(clinicCount) = colnames(numer) = c("month","x")
+  }  
   
   # put together dataframe of data per month
   dataper <- data.frame(month = monthList, stringsAsFactors = FALSE)
