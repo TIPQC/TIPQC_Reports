@@ -232,7 +232,7 @@ xbarI_section = function(rdata,columnOfInterest,h=480,w=850,yaxis_label="Minutes
 	
 	# plot 1
   # xbarI chart of all data
-	png_filename1 = paste('xbarchart_',columnOfInterest,'.png',sep="")
+	png_filename1 = paste('img/xbarchart_',columnOfInterest,'.png',sep="")
 	png(png_filename1,height=h,width=w)
 		xbarI = xbarI_built_in_plot(allplotdata,yaxis_label)
 		# add month labels
@@ -250,7 +250,7 @@ xbarI_section = function(rdata,columnOfInterest,h=480,w=850,yaxis_label="Minutes
 	recentData = ifelse(nrow(plot2data$qdata)>0,TRUE,FALSE)
 	if(recentData)
 	{                                    
-		png_filename2 = paste('xbarchart_',columnOfInterest,"_2.png",sep="")
+		png_filename2 = paste('img/xbarchart_',columnOfInterest,"_2.png",sep="")
 		png(png_filename2,height=h,width=w)
 			xbarI_built_in_plot2(data=plot2data$qdata1,data.name=plot2data$plotDividerLabels[1],newdata=plot2data$qdata2,newdata.name=plot2data$plotDividerLabels[2],cutoffMonth=plot2data$monthLabels[4],yaxis_label)  
 			# add month labels
@@ -432,7 +432,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle)
 	h = 450					
 	w = 1000
 	# start writing png
-	pngFileName = paste('barchart_',columnOfInterest,'.png',sep="")
+	pngFileName = paste('img/barchart_',columnOfInterest,'.png',sep="")
 	png(pngFileName,height=h,width=w)
 	par(xpd=T, mar=c(5, 4, 4, 2) + 0.1+c(0,7,5,12))
 
