@@ -82,4 +82,5 @@ rdata$month = format(as.Date(as.character(rdata$dob_fake),format="%m/%d/%y"), fo
 USER <<- USER
 rdata <<- rdata
 monthList <<- format(seq(as.Date("2012-05-01"), Sys.Date(), by="1 month"),"%m/%Y")
+PILOT_DATE = as.Date("2012-09-01")
 
