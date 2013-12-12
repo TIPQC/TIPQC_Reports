@@ -1,15 +1,13 @@
 # Project files
 *.Rproj
 *.Rproj.user*
-
 # History files
 .Rhistory
-
 # Example code in package build process
 *-Ex.R
-
 *local_script.hm.R
 *report.html
+*formatData.R
 *.png
 */backup
 */img
