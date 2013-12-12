@@ -51,7 +51,7 @@ if(USER == "state_user") {
 }
 data=hospdata
 data$month = gsub("[\\(\\)]","",regmatches(data$month,gregexpr("\\(.*?\\)",data$month)))
-data$month = paste(data$month,data$year,sep="/")
+data$month = paste(data$month,substr(data$year, 3, 4),sep="/")
 pbps_list = gsub("_how_audit","",colnames(data)[grep("_how_audit",colnames(data))])
 pbps = data.frame(pbps_list)
 for(i in 1:length(pbps_list)){

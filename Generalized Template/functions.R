@@ -1,17 +1,20 @@
-# stackedBarChart
-# This function created a stacked bar chart over time (months).
-# rdata - a dataframe
-# columnOfInterest - the column name of the data that you want to chart
-# type - chart percentages/counts
-# chartTitle - chart title
-# fromDate - the first date at which to include data
-# categories - the possible values of the column of interest. Only include the ones you want to show up in the chart.
-# colors - the corresponding colors to use to represent the categories (above)
-# include.na - TRUE/FALSE. Decide whether or not to include NA values as a category in your plot.
-
+########################################################################
+## stackedBarChart #####################################################
+########################################################################
+# This function creates a stacked bar chart over time (months).
+  # rdata - a dataframe (must include "month", columnOfInterest(below), and "clinic")
+  # columnOfInterest - the column name of the data that you want to chart
+  # chartTitle - chart title
+  # type (optional) - chart percent/count; defaults to percent
+  # ymax (optional) - the maximum value of the yaxis; defaults to 100% if percent or maxiumum value of data
+  # fromDate (optional) - the first date at which to include data
+  # categories (optional) - the possible values of the column of interest. Only include the ones you want to show up in the chart.
+  # colors (optional) - the corresponding colors to use to represent the categories (above)
+  # include.na (optional) - TRUE/FALSE. Decide whether or not to include NA values as a category in your plot.
+########################################################################
 stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", ymax="",fromDate=PILOT_DATE,categories=c("No","Yes"),colors=c("red","green"),include.na=TRUE)
 {
-#   # debugging - set all variables
+  # debugging - set all variables
 #   rdata = allpbps
 #   columnOfInterest = "pbp"
 #   chartTitle = "Status Of All 10 PBPs"
@@ -27,7 +30,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
   tempData = subset(rdata,select=c("month",columnOfInterest))
   tempData_notNA = subset(tempData,!is.na(tempData[,columnOfInterest]))
   months = seq(fromDate, Sys.Date(), by="1 month")
-  monthListFromPilot = format(months,"%m/%Y")
+  monthListFromPilot = format(months,"%m/%y")
   denomList = c()
   
   plotData = data.frame()
@@ -49,7 +52,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
   colnames(plotData) = monthListFromPilot
   myrownames = categories
   if(include.na){
-    myrownames = c(myrownames,"NA")
+    myrownames = c(myrownames,"Blank")
     colors = c(colors,"purple")
   }
     
