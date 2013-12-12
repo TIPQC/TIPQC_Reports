@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>TIPQC NAS Process Implementation Report</title>
+    <style type="text/css">
+      @media print{@page {size: landscape}}
+      .page-break-after { page-break-after: always }
+      h1 { font-size: 2em }
+      h2 { font-size: 1em }
+      h3 { font-size: 1em; font-weight: normal; text-decoration: underline }
+      li { margin-bottom: 5px; }
+      .section { margin-top: 20px; }
+      .subsection { margin-bottom: 20px; }
+    </style>
+  </head>
+<body>
+
+<!-- ###################################################################################   -->
+<!-- ###################################################################################   -->
+<!-- ###################################################################################   -->
+
+<center>
+   <h1>- TIPQC NAS Process Implementation Report -</h1>
+   <%=                                                                                                 
+      format(Sys.time(), "%B %d, %Y %I:%M %p", usetz = TRUE)
+   %>
+</center>
+
+<!-- ###################################################################################   -->
+<!-- ###################################################################################   -->
+<!-- ###################################################################################   -->
+
+<%
+# create img file if not exists
+if (!file.exists("img")){
+  dir.create(file.path(getwd(), "img"))
+}
+
+thisreport <- Sys.Date()
+%>
+<%
+data$clinic = as.numeric(gsub("-[0-9a-zA-Z]+","",data$record_id))
+if(USER != "state_user") {
+   hospdata <- subset(data, record_id %in% grep(paste("^", USER_GROUP_ID, "-", sep = ""),
+      data$record_id, value = TRUE))
+}
+if(USER == "state_user") {
+   # Exclude Lake WBG data!
+   hospdata <- subset(data, record_id %nin% grep("^82-", data$record_id, value = TRUE))
+}
+data=hospdata
+data$month = gsub("[\\(\\)]","",regmatches(data$month,gregexpr("\\(.*?\\)",data$month)))
+data$month = paste(data$month,data$year,sep="/")
+pbps_list = gsub("_how_audit","",colnames(data)[grep("_how_audit",colnames(data))])
+pbps = data.frame(pbps_list)
+for(i in 1:length(pbps_list)){
+  pbps[i,'label'] = label(data[,pbps_list[i]])
+  # order by the number in () in the label of the data column
+  pbps[i,'order'] = gsub("[\\(\\)]","",regmatches(label(data[,pbps_list[i]]),gregexpr("^\\(.*?\\)",label(data[,pbps_list[i]]))))
+}
+pbps=pbps[with(pbps,order(as.numeric(order))),]
+pbps_list = as.vector(pbps$pbps)
+mysub = subset(data,select=c("month","year","clinic",pbps_list))
+
+PILOT_DATE = as.Date("2012-09-01")
+
+USER<<-USER
+
+# one chart showing Status Of All 10 PBPs
+allpbps = matrix(ncol=3)
+for(pbp in pbps$pbps){
+  allpbps = rbind(allpbps,as.matrix(mysub[,c("month",pbp,"clinic")]))
+}
+allpbps = allpbps[-1,]
+colnames(allpbps)=c("month","pbp","clinic")
+rownames(allpbps)=NULL
+allpbps = data.frame(allpbps)
+rdata = allpbps
+columnOfInterest = "pbp"
+chartTitle = "Status Of All 10 PBPs"
+categories=c("No","Yes","In progress")
+colors=c("red","green","lightgreen")
+fromDate=PILOT_DATE
+include.na=TRUE
+stackedBarChart(allpbps,"pbp","Status Of All 10 PBPs",categories=c("No","Yes","In progress"),colors=c("red","green","lightgreen"))
+
+# if state_user, show a plot for each pbp
+if(USER=="state_user"){
+  for(pbp in pbps$pbps){
+    stackedBarChart(mysub,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","lightgreen"))
+  }
+}else{
+  # local - show % audited and % compliant
+  audited_list = paste(pbps_list,"_audit",sep="")
+  existing_pbps = matrix(ncol=6)
+  for(pbp in pbps$pbps){
+    audit = paste(pbp,"_audit",sep="")
+    num_audited = paste(pbp,"_no_audit",sep="")
+    num_compliant = paste(pbp,"_no_compliant",sep="")
+    tmp = subset(data,data[,pbp]=="Yes" | data[,pbp]=="In progress")
+    existing_pbps = rbind(existing_pbps,as.matrix(tmp[,c("month",pbp,audit,num_audited,num_compliant,"clinic")]))
+  }
+  existing_pbps = existing_pbps[-1,]
+  colnames(existing_pbps) = c("month","pbp","audit","num_audited","num_compliant","clinic")
+  rownames(existing_pbps)=NULL
+  existing_pbps = data.frame(existing_pbps)
+  stackedBarChart(existing_pbps,"audit","% Audited of PBPs that are Existing/In Progress ")
+  
+  audited_pbps = subset(existing_pbps,existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited))
+  rownames(audited_pbps) = NULL
+  audited_pbps$Yes = "Yes"
+  audited_pbps$No = "No"
+  # put data in format for barchart
+  compliant_pbps = matrix(ncol=3)
+  colnames(compliant_pbps) = c("month","compliant","clinic")
+  for(row in 1:nrow(audited_pbps)){   
+    #compliant
+    num_compliant = as.numeric(audited_pbps[row,"num_compliant"])
+    if(num_compliant>0){
+      for(num in 1:num_compliant){
+        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps[row,c("month","Yes","clinic")]))
+      }
+    }   
+    #not compliant
+    noncompliant = as.numeric(as.character(audited_pbps[row,"num_audited"])) - as.numeric(as.character(audited_pbps[row,"num_compliant"]))
+    if(noncompliant>0){
+      for(num in 1:noncompliant){
+
+        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps[row,c("month","No","clinic")]))
+      }
+    } 
+    rm(num_compliant,noncompliant)
+  }
+  compliant_pbps = compliant_pbps[-1,]
+  rownames(compliant_pbps)=NULL
+  compliant_pbps = data.frame(compliant_pbps)
+  stackedBarChart(compliant_pbps,"compliant","% Compliant of Audited PBPs",include.na=FALSE)
+}
+
+%>
+   
+</body>
+
+</html>
