@@ -1,5 +1,28 @@
-stackedBarChart = function(rdata,columnOfInterest,chartTitle,fromDate=PILOT_DATE,categories=c("No","Yes"),colors=c("red","green"),include.na=TRUE)
+# stackedBarChart
+# This function created a stacked bar chart over time (months).
+# rdata - a dataframe
+# columnOfInterest - the column name of the data that you want to chart
+# type - chart percentages/counts
+# chartTitle - chart title
+# fromDate - the first date at which to include data
+# categories - the possible values of the column of interest. Only include the ones you want to show up in the chart.
+# colors - the corresponding colors to use to represent the categories (above)
+# include.na - TRUE/FALSE. Decide whether or not to include NA values as a category in your plot.
+
+stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", ymax="",fromDate=PILOT_DATE,categories=c("No","Yes"),colors=c("red","green"),include.na=TRUE)
 {
+#   # debugging - set all variables
+#   rdata = allpbps
+#   columnOfInterest = "pbp"
+#   chartTitle = "Status Of All 10 PBPs"
+#   type = "count"
+#   ymax = 10
+#   fromDate=PILOT_DATE
+#   categories=c("No","Yes","In progress")
+#   colors=c("red","green","lightgreen")
+#   include.na=TRUE
+  
+  
   rdata = subset(rdata,!is.na(rdata$month))
   tempData = subset(rdata,select=c("month",columnOfInterest))
   tempData_notNA = subset(tempData,!is.na(tempData[,columnOfInterest]))
@@ -13,11 +36,13 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,fromDate=PILOT_DATE
     denominator = sum(tempData$month==monthListFromPilot[month])
     
     for(i in 1:length(categories)){
-      plotData[i,month] = sum(tempData_notNA[,2][tempData_notNA$month==monthListFromPilot[month]]==categories[i]) / denominator*100
+      category_count = sum(tempData_notNA[,2][tempData_notNA$month==monthListFromPilot[month]]==categories[i])
+      plotData[i,month] = ifelse(type=="percent",category_count/denominator*100,category_count)     
     }
     if(include.na){
       # NA
-      plotData[length(categories)+1,month] = sum(is.na(tempData[,2][tempData$month==monthListFromPilot[month]])) / denominator*100
+      category_count = sum(is.na(tempData[,2][tempData$month==monthListFromPilot[month]]))
+      plotData[length(categories)+1,month] = ifelse(type=="percent",category_count/denominator*100,category_count)
     }    
     denomList = c(denomList,denominator)
   }
@@ -39,20 +64,36 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,fromDate=PILOT_DATE
   
   barPlotData = as.matrix(plotData)
   
+  # determine ylimits
+  if(ymax!=""){
+    ylim = c(0,ymax)
+  }else{
+    if(type=="percent"){
+      ymax = 100
+    }else{
+      ymax = max(barPlotData)
+    }
+  }
+  ylim = c(0,ymax)
+  
   b = barplot(barPlotData,
               main=chartTitle,
               col=colors,
               xlab = "Month",
-              ylab = "Percent"							  
+              ylab = capitalize(type),
+              ylim = ylim
   )
   box(lty=1,col='black')
   #legendpos = ((tail(b,2)[2]-tail(b,2)[1]))*length(b)/3.5*-1
   legend("topright",inset=c(-.15,0),rev(rownames(plotData)),fill=rev(colors))
-  # add n at the bottom
-  mtext(side = 1, text = "Total No. Records (n):", at = 0.45, adj = 1, line = 4, cex = 0.85, font=2)
-  axis(side=1,at=b,labels=denomList,tick = FALSE,cex.axis=.85,line=3,font=2)
   
-  # add percentage labels if percentage >=5%
+  # if percent plot, add n at the bottom
+  if(type=="percent"){
+    mtext(side = 1, text = "Total No. Records (n):", at = 0.45, adj = 1, line = 4, cex = 0.85, font=2)
+    axis(side=1,at=b,labels=denomList,tick = FALSE,cex.axis=.85,line=3,font=2)
+  }  
+  
+  # add count/percentage labels on bars
   # Find the top y position of each block 
   ypos <- apply(barPlotData, 2, cumsum)
   # Move it downwards half the size of each block
@@ -64,10 +105,15 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,fromDate=PILOT_DATE
     {
       for(col in 1:ncol(barPlotData))
       {
-        if(!is.na(barPlotData[row,col]) && !is.nan(barPlotData[row,col]) && round(barPlotData[row,col])>=5)
+        if(!is.na(barPlotData[row,col]) && !is.nan(barPlotData[row,col]))
         {
-          text(b[col],ypos[row,col],paste(round(barPlotData[row,col]),"%",sep=""))
-          
+          # percentage labels
+          if(type=="percent" && round(barPlotData[row,col])>=5)
+            text(b[col],ypos[row,col],paste(round(barPlotData[row,col]),"%",sep=""))
+          # raw count labels
+          else if(type!="percent" && round(barPlotData[row,col])>=(.1*ymax)){
+            text(b[col],ypos[row,col],round(barPlotData[row,col]))
+          }
         }
       }
     }

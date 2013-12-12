@@ -83,14 +83,19 @@ categories=c("No","Yes","In progress")
 colors=c("red","green","lightgreen")
 fromDate=PILOT_DATE
 include.na=TRUE
-stackedBarChart(allpbps,"pbp","Status Of All 10 PBPs",categories=c("No","Yes","In progress"),colors=c("red","green","lightgreen"))
 
-# if state_user, show a plot for each pbp
+
+# begin charts
 if(USER=="state_user"){
+  # one chart showing Status Of All 10 PBPs
+  stackedBarChart(allpbps,"pbp","Status Of All 10 PBPs",categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
+  # if state_user, show a plot for each pbp
   for(pbp in pbps$pbps){
-    stackedBarChart(mysub,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","lightgreen"))
+    stackedBarChart(mysub,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
   }
 }else{
+  # one chart showing Status Of All 10 PBPs
+  stackedBarChart(allpbps,"pbp","Status Of All 10 PBPs",type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
   # local - show % audited and % compliant
   audited_list = paste(pbps_list,"_audit",sep="")
   existing_pbps = matrix(ncol=6)
@@ -105,7 +110,7 @@ if(USER=="state_user"){
   colnames(existing_pbps) = c("month","pbp","audit","num_audited","num_compliant","clinic")
   rownames(existing_pbps)=NULL
   existing_pbps = data.frame(existing_pbps)
-  stackedBarChart(existing_pbps,"audit","% Audited of PBPs that are Existing/In Progress ")
+  stackedBarChart(existing_pbps,"audit","No. of Audited PBPs within Existing/In Progress",type="count",ymax=10)
   
   audited_pbps = subset(existing_pbps,existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited))
   rownames(audited_pbps) = NULL
