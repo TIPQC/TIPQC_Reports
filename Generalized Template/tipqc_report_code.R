@@ -57,6 +57,7 @@ colors=c("red","green","lightgreen")
 fromDate=PILOT_DATE
 include.na=TRUE
 
+checkmark = '&#x2713;'
 
 # begin charts
 if(USER=="state_user"){
@@ -65,13 +66,13 @@ if(USER=="state_user"){
   stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
   # if state_user, show a percentage plot for each pbp
   for(pbp in pbps$pbps){
-    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
+    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","blue"),include.totalrecords=FALSE)
     ##
     tmp_table = cbind(as.matrix(with(subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),table(clinic,month))))
     months = seq(fromDate, Sys.Date(), by="1 month")
     monthListFromPilot = format(months,"%m/%y")
-    my_table = tmp_table[,monthListFromPilot[1]]
-    for(month in monthListFromPilot[2:length(monthListFromPilot)])
+    my_table = as.numeric(cbind(rownames(tmp_table)))
+    for(month in monthListFromPilot[1:length(monthListFromPilot)])
     {
       if(month %in% colnames(tmp_table)){
         my_table = cbind(my_table,tmp_table[,month])
@@ -81,7 +82,11 @@ if(USER=="state_user"){
     }
     my_table = data.frame(my_table)
     rownames(my_table) = rownames(tmp_table)
-    colnames(my_table) = monthListFromPilot
+    colnames(my_table) = c("center",monthListFromPilot)
+    my_table[my_table==1] = checkmark
+    my_table[my_table==0] = " "
+    #print(xtable(my_table,align=rep("c",ncol(my_table)+1)),type="html")
+    writeHTMLtable(my_table)
     ##
     ##
     ##
@@ -90,6 +95,35 @@ if(USER=="state_user"){
   # one raw count chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
   stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
+  
+  
+  ####table
+  tmp_table = t(pbp_subset)[pbps_list,]
+  colnames(tmp_table)=pbp_subset$month
+  rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
+  tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
+  tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
+  months = seq(fromDate, Sys.Date(), by="1 month")
+  monthListFromPilot = format(months,"%m/%y")
+  my_table = as.numeric(cbind(rownames(tmp_table)))
+  for(month in monthListFromPilot[1:length(monthListFromPilot)])
+  {
+    if(month %in% colnames(tmp_table)){
+      my_table = cbind(my_table,tmp_table[,month])
+    }else{
+      my_table = cbind(my_table,rep(0,nrow(tmp_table)))
+    }      
+  }
+  my_table = data.frame(my_table,stringsAsFactors=FALSE)
+  rownames(my_table) = rownames(tmp_table)
+  colnames(my_table) = c("pbp",monthListFromPilot)
+  my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
+  my_table[my_table==0] = " "
+  #print(xtable(my_table,align=rep("c",ncol(my_table)+1)),type="html")
+  writeHTMLtable(my_table,col.label="PBP:")
+  #####
+  
+  
   # local - show raw count of audited and % compliant
   audited_list = paste(pbps_list,"_audit",sep="")
   existing_pbps = matrix(ncol=6)
@@ -113,20 +147,21 @@ if(USER=="state_user"){
   # put data in format for barchart
   compliant_pbps = matrix(ncol=3)
   colnames(compliant_pbps) = c("month","compliant","clinic")
-  for(row in 1:nrow(audited_pbps)){   
+  audited_pbps_nonmissing_compliance = audited_pbps[!is.na(audited_pbps$num_compliant),]
+  for(row in 1:nrow(audited_pbps_nonmissing_compliance)){   
     #compliant
-    num_compliant = as.numeric(audited_pbps[row,"num_compliant"])
+    num_compliant = as.numeric(audited_pbps_nonmissing_compliance[row,"num_compliant"])
     if(num_compliant>0){
       for(num in 1:num_compliant){
-        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps[row,c("month","Yes","clinic")]))
+        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps_nonmissing_compliance[row,c("month","Yes","clinic")]))
       }
     }   
     #not compliant
-    noncompliant = as.numeric(as.character(audited_pbps[row,"num_audited"])) - as.numeric(as.character(audited_pbps[row,"num_compliant"]))
+    noncompliant = as.numeric(as.character(audited_pbps_nonmissing_compliance[row,"num_audited"])) - as.numeric(as.character(audited_pbps_nonmissing_compliance[row,"num_compliant"]))
     if(noncompliant>0){
       for(num in 1:noncompliant){
         
-        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps[row,c("month","No","clinic")]))
+        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps_nonmissing_compliance[row,c("month","No","clinic")]))
       }
     } 
     rm(num_compliant,noncompliant)
