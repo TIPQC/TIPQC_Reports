@@ -21,7 +21,7 @@ data$month = paste(data$month,substr(data$year, 3, 4),sep="/")
 
 ## Probably Turn in to "PBP Section" Function ##
 
-# get pbpbs
+# get pbps
 pbps_list = gsub("_how_audit","",colnames(data)[grep("_how_audit",colnames(data))])
 pbps = data.frame(pbps_list)
 for(i in 1:length(pbps_list)){
@@ -40,22 +40,34 @@ pbp_subset$key = paste(pbp_subset$month,pbp_subset$clinic,sep="")
 duplicate_keys = unique(pbp_subset[duplicated(pbp_subset$key),"key"])
 pbp_subset = pbp_subset[!(pbp_subset$key %in% duplicate_keys),c("month","year","clinic",pbps_list)]
 
+# months to be included in charts
+months = seq(PILOT_DATE, Sys.Date(), by="1 month")
+monthListFromPilot <<- format(months,"%m/%y")
+
+# delete any data outside of the date range we're interested in
+pbp_subset = pbp_subset[(pbp_subset$month %in% monthListFromPilot),]
+
 # one chart showing Status Of All 10 PBPs
-allpbps = matrix(ncol=3)
+allpbps = matrix(ncol=5)
 for(pbp in pbps$pbps){
-  allpbps = rbind(allpbps,as.matrix(pbp_subset[,c("month",pbp,"clinic")]))
+  pbp_num = gsub("[\\(\\)]","",regmatches(label(data[,pbp]),gregexpr("^\\(.*?\\)",label(data[,pbp]))))
+  # month, pbp status, clinic, pbp num, month key
+  tmp = cbind(pbp_subset[,c("month",pbp,"clinic")],rep(pbp_num,nrow(pbp_subset)),match(pbp_subset$month,monthListFromPilot))
+  allpbps = rbind(allpbps,as.matrix(tmp))
 }
 allpbps = allpbps[-1,]
-colnames(allpbps)=c("month","pbp","clinic")
+colnames(allpbps)=c("month","pbp","clinic","pbp_num","month_key")
 rownames(allpbps)=NULL
 allpbps = data.frame(allpbps)
-rdata = allpbps
-columnOfInterest = "pbp"
-chartTitle = "Status Of All 10 PBPs"
-categories=c("No","Yes","In progress")
-colors=c("red","green","lightgreen")
-fromDate=PILOT_DATE
-include.na=TRUE
+allpbps_y_inprog = allpbps[allpbps$pbp %in% c("Yes","In progress"),]
+# rdata = allpbps
+# columnOfInterest = "pbp"
+# chartTitle = "Status Of All 10 PBPs"
+# categories=c("No","Yes","In progress")
+# colors=c("red","green","lightgreen")
+# fromDate=PILOT_DATE
+# include.na=TRUE
+
 
 checkmark = '&#x2713;'
 
@@ -63,14 +75,19 @@ checkmark = '&#x2713;'
 if(USER=="state_user"){
   # one percentage chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
+  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart illustrating the status of all PBPs for all participating clinics over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
+  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))  
+  cat("<br>")
+  # sunflower plot
+  createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
+  # stacked bar chart for each PBP
+  cat(paste("</li><li class='subsection'><span class='header'>Status of Each PBP</span> <p>Following are stacked bar charts illustrating the status of each PBP for all participating clinics over time. These charts only show the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the status of each PBP for each month.</p>"))
   # if state_user, show a percentage plot for each pbp
   for(pbp in pbps$pbps){
-    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","blue"),include.totalrecords=FALSE)
+    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE)
     ##
     tmp_table = cbind(as.matrix(with(subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),table(clinic,month))))
-    months = seq(fromDate, Sys.Date(), by="1 month")
-    monthListFromPilot = format(months,"%m/%y")
+    
     my_table = as.numeric(cbind(rownames(tmp_table)))
     for(month in monthListFromPilot[1:length(monthListFromPilot)])
     {
@@ -91,10 +108,12 @@ if(USER=="state_user"){
     ##
     ##
   }
+  cat("</li>")
 }else{
   # one raw count chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","blue"))
+  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see _____________________ for any duplicate records.</p>"))
+  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))
   
   
   ####table
@@ -103,8 +122,6 @@ if(USER=="state_user"){
   rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
   tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
   tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
-  months = seq(fromDate, Sys.Date(), by="1 month")
-  monthListFromPilot = format(months,"%m/%y")
   my_table = as.numeric(cbind(rownames(tmp_table)))
   for(month in monthListFromPilot[1:length(monthListFromPilot)])
   {
@@ -119,7 +136,6 @@ if(USER=="state_user"){
   colnames(my_table) = c("pbp",monthListFromPilot)
   my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
   my_table[my_table==0] = " "
-  #print(xtable(my_table,align=rep("c",ncol(my_table)+1)),type="html")
   writeHTMLtable(my_table,col.label="PBP:")
   #####
   
@@ -138,7 +154,11 @@ if(USER=="state_user"){
   colnames(existing_pbps) = c("month","pbp","audit","num_audited","num_compliant","clinic")
   rownames(existing_pbps)=NULL
   existing_pbps = data.frame(existing_pbps)
-  stackedBarChart(existing_pbps,"audit","No. of Audited PBPs within Existing/In Progress",type="count",ymax=10)
+  existing_pbps$pbpstatus_audit = gsub("NA","Blank",paste(existing_pbps$pbp,"/ Audit =",existing_pbps$audit))
+  stackedBarChart(existing_pbps,"pbpstatus_audit","No. of Audited PBPs with Status of Yes/In Progress",type="count",
+    categories=c("In progress / Audit = No", "In progress / Audit = Yes","In progress / Audit = Blank","Yes / Audit = No","Yes / Audit = Yes","Yes / Audit = Blank"),
+    colors=c("blue","cyan","lightblue","darkgreen","green","lightgreen"),ymax=10,include.na=FALSE)
+  
   
   audited_pbps = subset(existing_pbps,existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited))
   rownames(audited_pbps) = NULL

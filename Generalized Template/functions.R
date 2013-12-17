@@ -11,6 +11,7 @@
   # categories (optional) - the possible values of the column of interest. Only include the ones you want to show up in the chart.
   # colors (optional) - the corresponding colors to use to represent the categories (above)
   # include.na (optional) - TRUE/FALSE. Decide whether or not to include NA values as a category in your plot.
+  # include.totalrecords (optional) - TRUE/FALSE. Shows total number of records at the bottom of the plot.
 ########################################################################
 stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", ymax="",fromDate=PILOT_DATE,categories=c("No","Yes"),colors=c("red","green"),include.na=TRUE,include.totalrecords=TRUE)
 {
@@ -89,8 +90,9 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
               ylim = ylim
   )
   box(lty=1,col='black')
-  #legendpos = ((tail(b,2)[2]-tail(b,2)[1]))*length(b)/3.5*-1
-  legend("topright",inset=c(-.15,0),rev(rownames(plotData)),fill=rev(colors))
+  legendpos = ((tail(b,2)[2]-tail(b,2)[1])*1.5)+tail(b,2)[2]
+  legend(legendpos,ymax,rev(rownames(plotData)),fill=rev(colors))
+  #legend("topright",inset=c(-.15,0),rev(rownames(plotData)),fill=rev(colors))
   
   # if percent plot, add n at the bottom
   if(type=="percent" && include.totalrecords){
@@ -144,7 +146,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
   par(mar=c(5, 4, 4, 2) + 0.1)
   
   # output image to page
-  cat(paste("<br><br><div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
+  cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }
 
 
@@ -169,5 +171,27 @@ writeHTMLtable <- function(my_table,col.label="Center:",include.colnames=FALSE){
   between = paste("</td><td align='center' style='width:",td.width,"px;'>",sep="")
   htmltable <- paste(start,thead,"<tbody><tr><td style='width:",first.td.width,"px;'>",paste(c(apply(my_table,1,paste,collapse=between)),collapse="</tr><tr><td>"),end,sep="")
   
-  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;'>&#x2713; = Yes / In progress</div><div></div></div>"))
+  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;'>&#x2713; = Yes / In progress</div><div></div></div><br><br>"))
+}
+
+createSunFlowerPlot = function(data){
+  cat(paste("</li><li class='subsection'><span class='header'>Sunflower Plot - Number of Centers with Yes / In Progress PBPs</span> <p>Following is a sunflower plot illustrating the number of centers with a status of 'Yes' or 'In progress' for each PBP. The y axis represents each PBP and the x axis represents each month. Each petal on a 'sunflower' represents a center that has indicated 'Yes' or 'In progress' for a given PBP and month.</p>"))
+  h = 450  				
+  w = 1000
+  # start writing png
+  pngFileName = paste('img/sunflowerplot.png',sep="")
+  png(pngFileName,height=h,width=w)
+  
+  # bottom, left, top, right margins
+  par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
+  sunflowerplot(data,xlab="Month",ylab="PBP",main="Number of Centers with Yes / In Progress PBPs",xaxt="n")
+  axis(side=1,at=seq(1,length(monthListFromPilot)),labels=monthListFromPilot,line=0)
+  
+  # end writing png
+  dev.off()
+  
+  # Restore default clipping rect
+  par(mar=c(5, 4, 4, 2) + 0.1)  
+  
+  cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }

@@ -10,8 +10,22 @@
       h2 { font-size: 1em }
       h3 { font-size: 1em; font-weight: normal; text-decoration: underline }
       li { margin-bottom: 5px; }
-      .section { margin-top: 20px; }
-      .subsection { margin-bottom: 20px; }
+      .section { margin-top: 20px;}
+      .section .header {font-size: 16pt;}
+      .subsection { margin-bottom: 20px;}
+      .subsection .header {font-size: 14pt;}
+      
+      ul.numeric-decimals { counter-reset:section; list-style-type:none; }
+      ul.numeric-decimals li { list-style-type:none; }
+      ul.numeric-decimals li ul { counter-reset:subsection; }
+      ul.numeric-decimals li:before{
+          counter-increment:section;
+          content:counter(section) ". ";/*content:"Section " counter(section) ". ";*/
+      }
+      ul.numeric-decimals li ul li:before {
+          counter-increment:subsection;
+          content:counter(section) "." counter(subsection) " ";
+      }
     </style>
   </head>
 <body>
@@ -39,9 +53,15 @@ if (!file.exists("img")){
 
 thisreport <- Sys.Date()
 %>
-<%
-source('tipqc_report_code.R')
-%>
+<ul class="numeric-decimals">
+  <li class="section"><span class="header">Potentially Better Practices (PBPs)</span>
+  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas nec orci nulla. Proin at aliquam ipsum, non bibendum leo. Suspendisse varius lorem diam. Ut et nunc at urna scelerisque pretium vel in mauris. Donec blandit nibh et pharetra viverra. Etiam tincidunt lorem in dui commodo placerat. Quisque et tortor sem. Duis ut urna neque. Curabitur ac malesuada quam, et malesuada nisi. Sed vehicula magna sollicitudin nulla pulvinar, eu suscipit metus dapibus. Mauris semper quam ac eros adipiscing, non faucibus nisl imperdiet. Nullam faucibus blandit commodo. In hac habitasse platea dictumst. </p>
+    <%
+      source('tipqc_report_code.R')
+    %>
+  </li>
+</ul>
+
    
 </body>
 
