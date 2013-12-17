@@ -30,7 +30,7 @@ for(i in 1:length(pbps_list)){
   pbps[i,'order'] = gsub("[\\(\\)]","",regmatches(label(data[,pbps_list[i]]),gregexpr("^\\(.*?\\)",label(data[,pbps_list[i]]))))
 }
 pbps=pbps[with(pbps,order(as.numeric(order))),]
-pbps_list = as.vector(pbps$pbps)
+pbps_list <<- as.vector(pbps$pbps)
 
 # define data subset with only pbps and a few necessary variables
 pbp_subset = subset(data,select=c("month","year","clinic",pbps_list))
@@ -85,28 +85,7 @@ if(USER=="state_user"){
   # if state_user, show a percentage plot for each pbp
   for(pbp in pbps$pbps){
     stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE)
-    ##
-    tmp_table = cbind(as.matrix(with(subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),table(clinic,month))))
-    
-    my_table = as.numeric(cbind(rownames(tmp_table)))
-    for(month in monthListFromPilot[1:length(monthListFromPilot)])
-    {
-      if(month %in% colnames(tmp_table)){
-        my_table = cbind(my_table,tmp_table[,month])
-      }else{
-        my_table = cbind(my_table,rep(0,nrow(tmp_table)))
-      }      
-    }
-    my_table = data.frame(my_table)
-    rownames(my_table) = rownames(tmp_table)
-    colnames(my_table) = c("center",monthListFromPilot)
-    my_table[my_table==1] = checkmark
-    my_table[my_table==0] = " "
-    #print(xtable(my_table,align=rep("c",ncol(my_table)+1)),type="html")
-    writeHTMLtable(my_table)
-    ##
-    ##
-    ##
+    createCheckMarkTable(rdata=subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),yaxis="clinic",col.label="Center:")
   }
   cat("</li>")
 }else{
@@ -117,26 +96,24 @@ if(USER=="state_user"){
   
   
   ####table
-  tmp_table = t(pbp_subset)[pbps_list,]
-  colnames(tmp_table)=pbp_subset$month
-  rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
-  tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
-  tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
-  my_table = as.numeric(cbind(rownames(tmp_table)))
-  for(month in monthListFromPilot[1:length(monthListFromPilot)])
-  {
-    if(month %in% colnames(tmp_table)){
-      my_table = cbind(my_table,tmp_table[,month])
-    }else{
-      my_table = cbind(my_table,rep(0,nrow(tmp_table)))
-    }      
-  }
-  my_table = data.frame(my_table,stringsAsFactors=FALSE)
-  rownames(my_table) = rownames(tmp_table)
-  colnames(my_table) = c("pbp",monthListFromPilot)
-  my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
-  my_table[my_table==0] = " "
-  writeHTMLtable(my_table,col.label="PBP:")
+  tmp_table = writeTmpTable(pbp_subset)
+  createCheckMarkTable(rdata=pbp_subset,tmp_table=tmp_table,yaxis="pbp",col.label="PBP:")
+  
+#   my_table = as.numeric(cbind(rownames(tmp_table)))
+#   for(month in monthListFromPilot[1:length(monthListFromPilot)])
+#   {
+#     if(month %in% colnames(tmp_table)){
+#       my_table = cbind(my_table,tmp_table[,month])
+#     }else{
+#       my_table = cbind(my_table,rep(0,nrow(tmp_table)))
+#     }      
+#   }
+#   my_table = data.frame(my_table,stringsAsFactors=FALSE)
+#   rownames(my_table) = rownames(tmp_table)
+#   colnames(my_table) = c("pbp",monthListFromPilot)
+#   my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
+#   my_table[my_table==0] = " "
+#   writeHTMLtable(my_table,col.label="PBP:")
   #####
   
   

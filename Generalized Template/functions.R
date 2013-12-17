@@ -149,9 +149,42 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
   cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }
 
+writeTmpTable = function(rdata){
+  tmp_table = t(rdata)[pbps_list,]
+  colnames(tmp_table)=rdata$month
+  rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
+  tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
+  tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
+  return(tmp_table)
+}
 
+createCheckMarkTable = function(rdata,tmp_table="",yaxis="clinic",col.label="Center:",checkMarkLegend="Yes / In progress"){
+  xaxis="month"
+  checkmark = '&#x2713;'
+  
+  if(tmp_table==""){
+    tmp_table = cbind(as.matrix(table(rdata[,yaxis],rdata[,xaxis])))
+  }
+  
+  
+  my_table = as.numeric(cbind(rownames(tmp_table)))
+  for(month in monthListFromPilot[1:length(monthListFromPilot)])
+  {
+    if(month %in% colnames(tmp_table)){
+      my_table = cbind(my_table,tmp_table[,month])
+    }else{
+      my_table = cbind(my_table,rep(0,nrow(tmp_table)))
+    }      
+  }
+  my_table = data.frame(my_table,stringsAsFactors=FALSE)
+  rownames(my_table) = rownames(tmp_table)
+  colnames(my_table) = c(col.label,monthListFromPilot)
+  my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
+  my_table[my_table==0] = " "
+  writeHTMLtable(my_table,col.label,checkMarkLegend)
+}
 
-writeHTMLtable <- function(my_table,col.label="Center:",include.colnames=FALSE){
+writeHTMLtable <- function(my_table,col.label="Center:",checkMarkLegend="Yes / In progress",include.colnames=FALSE){
   # cheat way of adding padding to first column
   my_table[,1] = as.character(paste("&nbsp;<b>",my_table[,1],"</b>"))
   
@@ -171,7 +204,7 @@ writeHTMLtable <- function(my_table,col.label="Center:",include.colnames=FALSE){
   between = paste("</td><td align='center' style='width:",td.width,"px;'>",sep="")
   htmltable <- paste(start,thead,"<tbody><tr><td style='width:",first.td.width,"px;'>",paste(c(apply(my_table,1,paste,collapse=between)),collapse="</tr><tr><td>"),end,sep="")
   
-  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;'>&#x2713; = Yes / In progress</div><div></div></div><br><br>"))
+  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;'>&#x2713; = ",checkMarkLegend,"</div><div></div></div><br><br>"))
 }
 
 createSunFlowerPlot = function(data){
@@ -195,3 +228,6 @@ createSunFlowerPlot = function(data){
   
   cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }
+
+
+
