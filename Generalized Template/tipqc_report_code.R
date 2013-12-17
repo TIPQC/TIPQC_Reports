@@ -82,7 +82,7 @@ if(USER=="state_user"){
   createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
   # stacked bar chart for each PBP
   cat(paste("</li><li class='subsection'><span class='header'>Status of Each PBP</span> <p>Following are stacked bar charts illustrating the status of each PBP for all participating clinics over time. These charts only show the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the status of each PBP for each month.</p>"))
-  # if state_user, show a percentage plot for each pbp
+  # if state_user, show a percentage plot and table of Yes/Inprogress for each pbp
   for(pbp in pbps$pbps){
     stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE)
     createCheckMarkTable(rdata=subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),yaxis="clinic",col.label="Center:")
@@ -92,31 +92,10 @@ if(USER=="state_user"){
   # one raw count chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
   cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see _____________________ for any duplicate records.</p>"))
-  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))
-  
-  
-  ####table
+  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))  
+  # table of Yes / In progress
   tmp_table = writeTmpTable(pbp_subset)
-  createCheckMarkTable(rdata=pbp_subset,tmp_table=tmp_table,yaxis="pbp",col.label="PBP:")
-  
-#   my_table = as.numeric(cbind(rownames(tmp_table)))
-#   for(month in monthListFromPilot[1:length(monthListFromPilot)])
-#   {
-#     if(month %in% colnames(tmp_table)){
-#       my_table = cbind(my_table,tmp_table[,month])
-#     }else{
-#       my_table = cbind(my_table,rep(0,nrow(tmp_table)))
-#     }      
-#   }
-#   my_table = data.frame(my_table,stringsAsFactors=FALSE)
-#   rownames(my_table) = rownames(tmp_table)
-#   colnames(my_table) = c("pbp",monthListFromPilot)
-#   my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
-#   my_table[my_table==0] = " "
-#   writeHTMLtable(my_table,col.label="PBP:")
-  #####
-  
-  
+  createCheckMarkTable(rdata=pbp_subset,tmp_table=tmp_table,yaxis="pbp",col.label="PBP:")  
   # local - show raw count of audited and % compliant
   audited_list = paste(pbps_list,"_audit",sep="")
   existing_pbps = matrix(ncol=6)
