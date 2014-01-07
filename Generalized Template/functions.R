@@ -149,34 +149,26 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
   cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }
 
-writeTmpTable = function(rdata){
-  tmp_table = t(rdata)[pbps_list,]
-  colnames(tmp_table)=rdata$month
-  rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
-  tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
-  tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
-  return(tmp_table)
-}
 
-createCheckMarkTable = function(rdata,tmp_table="",yaxis="clinic",col.label="Center:",checkMarkLegend="Yes / In progress"){
+createCheckMarkTable = function(rdata,yaxis="clinic",col.label="Center:",checkMarkLegend="&#x2713; = Yes / In progress"){
   xaxis="month"
   checkmark = '&#x2713;'
   
-  if(tmp_table==""){
+  # write tmp_table with 0's and 1's
+  if(USER=="state_user"){
     tmp_table = cbind(as.matrix(table(rdata[,yaxis],rdata[,xaxis])))
+  }else{
+    tmp_table = t(rdata)[pbps_list,]
+    colnames(tmp_table)=rdata$month
+    rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
+    tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
+    tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
   }
   
   
   my_table = as.numeric(cbind(rownames(tmp_table)))
-  for(month in monthListFromPilot[1:length(monthListFromPilot)])
-  {
-    if(month %in% colnames(tmp_table)){
-      my_table = cbind(my_table,tmp_table[,month])
-    }else{
-      my_table = cbind(my_table,rep(0,nrow(tmp_table)))
-    }      
-  }
-  my_table = data.frame(my_table,stringsAsFactors=FALSE)
+  # make sure months are in correct order
+  my_table = order_months_as_columns(tmp_table,my_table)
   rownames(my_table) = rownames(tmp_table)
   colnames(my_table) = c(col.label,monthListFromPilot)
   my_table[,monthListFromPilot][my_table[,monthListFromPilot]==1] = checkmark
@@ -184,7 +176,7 @@ createCheckMarkTable = function(rdata,tmp_table="",yaxis="clinic",col.label="Cen
   writeHTMLtable(my_table,col.label,checkMarkLegend)
 }
 
-writeHTMLtable <- function(my_table,col.label="Center:",checkMarkLegend="Yes / In progress",include.colnames=FALSE){
+writeHTMLtable <- function(my_table,col.label="Center:",legend="&#x2713; = Yes / In progress",include.colnames=FALSE){
   # cheat way of adding padding to first column
   my_table[,1] = as.character(paste("&nbsp;<b>",my_table[,1],"</b>"))
   
@@ -204,10 +196,19 @@ writeHTMLtable <- function(my_table,col.label="Center:",checkMarkLegend="Yes / I
   between = paste("</td><td align='center' style='width:",td.width,"px;'>",sep="")
   htmltable <- paste(start,thead,"<tbody><tr><td style='width:",first.td.width,"px;'>",paste(c(apply(my_table,1,paste,collapse=between)),collapse="</tr><tr><td>"),end,sep="")
   
-  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;'>&#x2713; = ",checkMarkLegend,"</div><div></div></div><br><br>"))
+  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;margin-top:5px;'>",legend,"</div><div></div></div><br><br>"))
 }
 
-createSunFlowerPlot = function(data){
+createAuditTable = function(rdata){
+  tmp_table = t(rdata)[pbps_list,]
+  colnames(tmp_table)=rdata$month
+  rownames(tmp_table)=gsub("[\\(\\)]","",regmatches(label(data[,rownames(tmp_table)]),gregexpr("^\\(.*?\\)",label(data[,rownames(tmp_table)]))))
+  tmp_table[!(tmp_table %in% c("Yes","In progress"))] = as.numeric(0)
+  tmp_table[tmp_table %in% c("Yes","In progress")] = as.numeric(1)
+  #tmp_table[tmp_table==1] = 
+}
+
+createSunFlowerPlot = function(rdata){
   cat(paste("</li><li class='subsection'><span class='header'>Sunflower Plot - Number of Centers with Yes / In Progress PBPs</span> <p>Following is a sunflower plot illustrating the number of centers with a status of 'Yes' or 'In progress' for each PBP. The y axis represents each PBP and the x axis represents each month. Each petal on a 'sunflower' represents a center that has indicated 'Yes' or 'In progress' for a given PBP and month.</p>"))
   h = 450  				
   w = 1000
@@ -217,7 +218,7 @@ createSunFlowerPlot = function(data){
   
   # bottom, left, top, right margins
   par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
-  sunflowerplot(data,xlab="Month",ylab="PBP",main="Number of Centers with Yes / In Progress PBPs",xaxt="n")
+  sunflowerplot(rdata,xlab="Month",ylab="PBP",main="Number of Centers with Yes / In Progress PBPs",xaxt="n",pch=19,cex=1.75,col='orange',seg.col="orange",seg.lwd=2.5)
   axis(side=1,at=seq(1,length(monthListFromPilot)),labels=monthListFromPilot,line=0)
   
   # end writing png
@@ -228,6 +229,22 @@ createSunFlowerPlot = function(data){
   
   cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
 }
+
+
+order_months_as_columns = function(tmp_table,return_table){
+  # make sure months are in correct order
+  for(month in monthListFromPilot[1:length(monthListFromPilot)])
+  {
+    if(month %in% colnames(tmp_table)){
+      return_table = cbind(return_table,tmp_table[,month])
+    }else{
+      return_table = cbind(return_table,rep(0,nrow(tmp_table)))
+    }      
+  }
+  return_table = data.frame(return_table,stringsAsFactors=FALSE)
+  return(return_table)
+}
+
 
 
 
