@@ -75,7 +75,7 @@ colnames(tmp_table) = pbp_key$order
 rownames(tmp_table) = audit_subset[,"month"]
 tmp_table=t(tmp_table)
 audit_table = as.numeric(cbind(rownames(tmp_table)))
-audit_table = order_months_as_columns(tmp_table,audit_table)
+audit_table = order_months_as_columns(tmp_table,audit_table,nodata=" ")
 rownames(audit_table) = rownames(tmp_table)
 colnames(audit_table) = c("PBP",monthListFromPilot)
 
@@ -129,8 +129,8 @@ checkmark = '&#x2713;'
 if(USER=="state_user"){
   # one percentage chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart illustrating the status of all PBPs for all participating clinics over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
-  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))  
+  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart illustrating the status of all PBPs for all participating clinics over time. This chart only shows the <i>status</i> of the implementation of PBPs (Yes, In progress, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
+  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
   cat("<br>")
   # sunflower plot
   createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
@@ -146,12 +146,12 @@ if(USER=="state_user"){
   # one raw count chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
   cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see _____________________ for any duplicate records.</p>"))
-  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","Yes","In progress"),colors=c("red","green","cyan"))  
+  stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
   # table of Yes / In progress
   createCheckMarkTable(rdata=pbp_subset,yaxis="pbp",col.label="PBP:")  
   cat("</li>")
   # local - show raw count of audited and % compliant
-  sectionTitle = paste("Status of All ",length(pbps_list)," PBPs")
+  sectionTitle = paste("Audited PBPs")
   cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following stacked bar chart is a breakdown of the Yes/In Progress status of all PBPs, based on whether or not each PBP was audited that month. Blue shades indicate PBPs with an 'In progress' status. Green shades indicate a status of 'Yes'. The varying shades indicate whether or not the PBP was audited (Yes, No, or Blank). The table displays the number of records audited for each PBP each month. PBPs with a status of Yes/In progress that are indicated as having been audited for a given month, but don't have the number audited entered in REDCap are indicated in red as 'missing'.</p>"))
   audited_list = paste(pbps_list,"_audit",sep="")
   existing_pbps = matrix(ncol=6)
@@ -168,15 +168,24 @@ if(USER=="state_user"){
   existing_pbps = data.frame(existing_pbps)
   existing_pbps$pbpstatus_audit = gsub("NA","Blank",paste(existing_pbps$pbp,"/ Audit =",existing_pbps$audit))
   stackedBarChart(existing_pbps,"pbpstatus_audit","No. of Audited PBPs with Status of Yes/In Progress",type="count",
-    categories=c("Yes / Audit = No","Yes / Audit = Yes","Yes / Audit = Blank","In progress / Audit = No", "In progress / Audit = Yes","In progress / Audit = Blank"),
-    colors=c("darkgreen","green","lightgreen","blue","cyan","lightblue"),ymax=10,include.na=FALSE)
+    categories=c("In progress / Audit = No", "In progress / Audit = Yes","In progress / Audit = Blank","Yes / Audit = No","Yes / Audit = Yes","Yes / Audit = Blank"),
+    colors=c("blue","cyan","lightblue","darkgreen","green","lightgreen"),ymax=10,include.na=FALSE)
   writeHTMLtable(audit_table,col.label="PBP:",legend="Numbers indicate # audited. 'Missing' means that PBP was audited, but # audited is missing in REDCap.",include.colnames=FALSE)
   cat("</li>")
   
   
   # percent compliant
-  # remove rows/columns of all NA's
-  tmp = compliance_table[rowSums(!is.na(compliance_table))!=0,colSums(!is.na(compliance_table))!=0]
-  compliance_matrix = data.matrix(tmp)
-  compliance_heatmap <- heatmap.2(compliance_matrix, Rowv=NA, Colv=NA, col = cm.colors(256), scale="column", margins=c(5,5),ylab="PBP",xlab="Month")  
+  sectionTitle = paste("PBP Audit Compliance")
+  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following heat map visualizes the compliance rate of audited PBPs over time. Shades of green indicate a higher compliance rate than shades of blue. Compliance rate is calculated as no. compliant divided by no. audited. </p>"))
+  compliance_matrix = t(data.matrix(compliance_table))
+  h = 450  				
+  w = 1000
+  # start writing png
+  pngFileName = paste('img/heatmap.png',sep="")
+  png(pngFileName,height=h,width=w)
+    color_gradient = c("#002BE5","#0032DD","#003AD6","#0042CF","#004AC8","#0051C1","#0059BA","#0061B2","#0069AB","#0071A4","#00789D","#008096","#00888F","#009087","#009880","#009F79","#00A772","#00AF6B","#00B764","#00BF5D")
+    levelplot(compliance_matrix,col.regions=color_gradient,xlab="Month",ylab="PBP",main="Compliance of Audited PBPs")
+  dev.off()
+  cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
+  cat("</li>")
 }
