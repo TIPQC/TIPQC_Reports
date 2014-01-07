@@ -79,6 +79,26 @@ audit_table = order_months_as_columns(tmp_table,audit_table)
 rownames(audit_table) = rownames(tmp_table)
 colnames(audit_table) = c("PBP",monthListFromPilot)
 
+# compliance table
+compliance_subset = audit_subset
+for(pbp in pbps_list){
+  percent_compliant_colname = paste(pbp,"_percent_compliant",sep="")
+  no_compliant_colname = paste(pbp,"_no_compliant",sep="")
+  no_audit_colname = paste(pbp,"_no_audit",sep="")
+  audit_colname = paste(pbp,"_audit",sep="") 
+  compliance_subset = cbind(compliance_subset,as.numeric(compliance_subset[,no_compliant_colname]) / as.numeric(compliance_subset[,no_audit_colname]))
+  colnames(compliance_subset) = c(colnames(compliance_subset)[1:length(colnames(compliance_subset))-1],percent_compliant_colname)
+  # mark instances where audit was performed, but no compliance data given
+  compliance_subset[compliance_subset[,audit_colname %in% c("Yes") & is.na(no_compliant_colname)],percent_compliant_colname] = "missing"
+}
+tmp_table = compliance_subset[,paste(pbps_list,"_percent_compliant",sep="")]
+colnames(tmp_table) = pbp_key$order
+rownames(tmp_table) = compliance_subset[,"month"]
+tmp_table=t(tmp_table)
+compliance_table = c()
+compliance_table = order_months_as_columns(tmp_table,compliance_table,nodata="NA")
+rownames(compliance_table) = rownames(tmp_table)
+colnames(compliance_table) = c(monthListFromPilot)
 
 
 # one chart showing Status Of All 10 PBPs
@@ -153,34 +173,10 @@ if(USER=="state_user"){
   writeHTMLtable(audit_table,col.label="PBP:",legend="Numbers indicate # audited. 'Missing' means that PBP was audited, but # audited is missing in REDCap.",include.colnames=FALSE)
   cat("</li>")
   
-  audited_pbps = subset(existing_pbps,existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited))
-  rownames(audited_pbps) = NULL
-  audited_pbps$Yes = "Yes"
-  audited_pbps$No = "No"
-  # put data in format for barchart
-  compliant_pbps = matrix(ncol=3)
-  colnames(compliant_pbps) = c("month","compliant","clinic")
-  audited_pbps_nonmissing_compliance = audited_pbps[!is.na(audited_pbps$num_compliant),]
-  for(row in 1:nrow(audited_pbps_nonmissing_compliance)){   
-    #compliant
-    num_compliant = as.numeric(audited_pbps_nonmissing_compliance[row,"num_compliant"])
-    if(num_compliant>0){
-      for(num in 1:num_compliant){
-        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps_nonmissing_compliance[row,c("month","Yes","clinic")]))
-      }
-    }   
-    #not compliant
-    noncompliant = as.numeric(as.character(audited_pbps_nonmissing_compliance[row,"num_audited"])) - as.numeric(as.character(audited_pbps_nonmissing_compliance[row,"num_compliant"]))
-    if(noncompliant>0){
-      for(num in 1:noncompliant){
-        
-        compliant_pbps = rbind(compliant_pbps,as.matrix(audited_pbps_nonmissing_compliance[row,c("month","No","clinic")]))
-      }
-    } 
-    rm(num_compliant,noncompliant)
-  }
-  compliant_pbps = compliant_pbps[-1,]
-  rownames(compliant_pbps)=NULL
-  compliant_pbps = data.frame(compliant_pbps)
-  stackedBarChart(compliant_pbps,"compliant","% Compliant of Audited PBPs",include.na=FALSE)
+  
+  # percent compliant
+  # remove rows/columns of all NA's
+  tmp = compliance_table[rowSums(!is.na(compliance_table))!=0,colSums(!is.na(compliance_table))!=0]
+  compliance_matrix = data.matrix(tmp)
+  compliance_heatmap <- heatmap.2(compliance_matrix, Rowv=NA, Colv=NA, col = cm.colors(256), scale="column", margins=c(5,5),ylab="PBP",xlab="Month")  
 }

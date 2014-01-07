@@ -231,14 +231,19 @@ createSunFlowerPlot = function(rdata){
 }
 
 
-order_months_as_columns = function(tmp_table,return_table){
+order_months_as_columns = function(tmp_table,return_table,nodata=0){
   # make sure months are in correct order
   for(month in monthListFromPilot[1:length(monthListFromPilot)])
   {
     if(month %in% colnames(tmp_table)){
       return_table = cbind(return_table,tmp_table[,month])
     }else{
-      return_table = cbind(return_table,rep(0,nrow(tmp_table)))
+      if(nodata==0){
+        return_table = cbind(return_table,rep(0,nrow(tmp_table)))
+      }else if(nodata=="NA"){
+        return_table = cbind(return_table,rep(NA,nrow(tmp_table)))
+      }
+      
     }      
   }
   return_table = data.frame(return_table,stringsAsFactors=FALSE)
