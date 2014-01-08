@@ -9,7 +9,6 @@
     $(document).ready(function(){      
       $('.filtering_enabled').dataTable();
     });  
-    console.log("hello world");
   </script>
   <style type="text/css">
     @media print{@page {size: landscape}}
@@ -159,7 +158,7 @@
                             # remove records with missing mob, since that messes up everything past this point
                             rdata <<- subset(rdata,!is.na(rdata$month))
                             # remove records where dob occurs before pilot date (05/01/12) or after today
-                            rdata <<- subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")<=Sys.Date())
+                            rdata <<- subset(rdata,as.Date(paste(rdata$yob,"-",rdata$mob_num,"-",1,sep=""))<=Sys.Date())
                             rdata <<- subset(rdata,as.Date(as.character(rdata$dob_fake),format="%m/%d/%y")>=as.Date("2012-05-01"))
                             
                             previous.time <<- check_run_time(previous.time)

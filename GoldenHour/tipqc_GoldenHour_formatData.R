@@ -36,8 +36,8 @@ label(data$rop)="OPTIONAL: ROP requiring intervention?"
 label(data$golden_hour_complete)="Complete?"
 
 #fake the dob and dod
-mob_num = regmatches(data$mob, gregexpr("(?<=\\().*?(?=\\))", data$mob, perl=T))
-data$dob_fake = as.Date(paste(data$yob,"-",mob_num,"-",1,sep=""))
+data$mob_num = regmatches(data$mob, gregexpr("(?<=\\().*?(?=\\))", data$mob, perl=T))
+data$dob_fake = as.Date(paste(data$yob,"-",data$mob_num,"-",1,sep=""))
 mod_num = regmatches(data$discharge_date_month, gregexpr("(?<=\\().*?(?=\\))", data$discharge_date_month, perl=T))
 data$discharge_date_fake = as.Date(paste(data$discharge_date_year,"-",mod_num,"-",1,sep=""))
 

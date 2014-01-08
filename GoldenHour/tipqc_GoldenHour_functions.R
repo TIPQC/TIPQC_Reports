@@ -114,7 +114,7 @@ dataChecks <- function(dataCheckCategory,data,columnList)
           #current month
           current_month = format(Sys.Date(),"%m")
           current_year = format(Sys.Date(),"%Y")
-					condition = as.numeric( (as.Date(as.character(data$dob_fake),format="%m/%d/%y"))<as.Date("2012-05-01") | (data$month>current_month && data$yob > current_year))	 |   (is.na(data$dob_fake)	| data$dob_fake=="")	
+					condition = as.numeric( (as.Date(as.character(data$dob_fake),format="%m/%d/%y"))<as.Date("2012-05-01") | (data$month>current_month && data$yob >= current_year)) | 	(data$yob >current_year |   (is.na(data$dob_fake)	| data$dob_fake==""))	
 					description = "A month/year of birth that is missing, occurring before May 2012, or occurring in the future" 
 				},
 				'ega'={
