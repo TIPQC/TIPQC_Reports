@@ -1,26 +1,4 @@
-# GLOBAL variables
-PILOT_DATE <<- as.Date("2012-09-01")
-USER <<- USER
 
-# define data according to user
-if(USER == "state_user") {
-  # Exclude Lake WBG data!
-  hospdata <- subset(data, record_id %nin% grep("^82-", data$record_id, value = TRUE))
-}else{
-  hospdata <- subset(data, record_id %in% grep(paste("^", USER_GROUP_ID, "-", sep = ""), data$record_id, value = TRUE))
-}
-data=hospdata
-
-# add clinic variable
-data$clinic = as.numeric(gsub("-[0-9a-zA-Z]+","",data$record_id))
-
-# add month variable
-data$month = gsub("[\\(\\)]","",regmatches(data$month,gregexpr("\\(.*?\\)",data$month)))
-data = data[order(as.numeric(data$year),as.numeric(data$month)),]
-data$month = paste(data$month,substr(data$year, 3, 4),sep="/")
-
-# index data by record id
-rownames(data)=data$record_id
 
 
 ## Probably Turn in to "PBP Section" Function ##
@@ -42,11 +20,6 @@ pbps_list <<- as.vector(pbp_key$pbps_list)
 
 # define data subset with only pbps and a few necessary variables
 pbp_subset_all = subset(data)
-
-# delete any (both) duplicates where month and clinic are the same
-pbp_subset_all$key = paste(pbp_subset_all$month,pbp_subset_all$clinic,sep="")
-duplicate_keys = unique(pbp_subset_all[duplicated(pbp_subset_all$key),"key"])
-pbp_subset_all = pbp_subset_all[!(pbp_subset_all$key %in% duplicate_keys),]
 
 # months to be included in charts
 months = seq(PILOT_DATE, Sys.Date(), by="1 month")
@@ -145,7 +118,7 @@ if(USER=="state_user"){
 }else{
   # one raw count chart showing Status Of All PBPs
   chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see _____________________ for any duplicate records.</p>"))
+  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records.</p>"))
   stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
   # table of Yes / In progress
   createCheckMarkTable(rdata=pbp_subset,yaxis="pbp",col.label="PBP:")  

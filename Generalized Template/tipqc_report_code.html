@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
-    <title>TIPQC NAS Process Implementation Report</title>
+    <title><%=ifelse(metaData[1,"form_name"] == "nas_potentially_better_practices","TIPQC NAS Process Implementation Report","TIPQC BF Promotion Delivery")%></title>
     <style type="text/css">
       @media print{@page {size: landscape}}
       .page-break-after { page-break-after: always }
@@ -35,7 +35,7 @@
 <!-- ###################################################################################   -->
 
 <center>
-   <h1>- TIPQC BF Promotion Delivery -</h1>
+   <h1>- <%=ifelse(metaData[1,"form_name"] == "nas_potentially_better_practices","TIPQC NAS Process Implementation Report","TIPQC BF Promotion Delivery")%> -</h1>
    <%=                                                                                                 
       format(Sys.time(), "%B %d, %Y %I:%M %p", usetz = TRUE)
    %>
@@ -52,8 +52,38 @@ if (!file.exists("img")){
 }
 
 thisreport <- Sys.Date()
+data = format_data(data)
 %>
 <ul class="numeric-decimals">
+
+
+
+
+<li class="section"><span class="header">Report Summary</span>
+  <ul>
+  <li> As of "today" (<%= format(thisreport, format = "%B %d, %Y") %>), <%= TOTAL_RECORDS %> records have been saved in REDCap<%= ifelse(USER!='state_user'," for your center","")%>.</li>
+  <li>These records include total <%= TOTAL_BABIES %> babies</li>
+  <li> These records span the months of <%= as.character(head(sort(unique(data$month)), n = 1)) %> to <%= as.character(tail(sort(unique(data$month)), n = 1)) %>. </li>
+  <li> Based on these dates, the most recent month of data captured in REDCap<%= ifelse(USER!='state_user'," for your center","")%> is <%= MONTHS_AGO %> month(s) ago.
+  <% if(!(identical(DUPLICATES,0))) {%>
+    <li> List of duplicate records: <br>
+    <% 
+      cat("<div style='padding-left:25px;'>")
+      writeHTMLtable(DUPLICATES,margin=0,legend="",include.colnames=TRUE,col.label="",width1='280px',width2='280px');
+      cat("</div>")
+      cat("</li>")
+ }else {cat("<li>No duplicate records.</li>" )}%>
+  
+    </ul>
+
+ </li>
+
+
+
+
+
+
+
   <li class="section"><span class="header">Potentially Better Practices (PBPs)</span>
   <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas nec orci nulla. Proin at aliquam ipsum, non bibendum leo. Suspendisse varius lorem diam. Ut et nunc at urna scelerisque pretium vel in mauris. Donec blandit nibh et pharetra viverra. Etiam tincidunt lorem in dui commodo placerat. Quisque et tortor sem. Duis ut urna neque. Curabitur ac malesuada quam, et malesuada nisi. Sed vehicula magna sollicitudin nulla pulvinar, eu suscipit metus dapibus. Mauris semper quam ac eros adipiscing, non faucibus nisl imperdiet. Nullam faucibus blandit commodo. In hac habitasse platea dictumst. </p>
     <%

@@ -176,14 +176,14 @@ createCheckMarkTable = function(rdata,yaxis="clinic",col.label="Center:",checkMa
   writeHTMLtable(my_table,col.label,checkMarkLegend)
 }
 
-writeHTMLtable <- function(my_table,col.label="Center:",legend="&#x2713; = Yes / In progress",include.colnames=FALSE){
+writeHTMLtable <- function(my_table,col.label="Center:",legend="&#x2713; = Yes / In progress",include.colnames=FALSE,margin="auto",width1='1100px',width2='655px'){
   # cheat way of adding padding to first column
   my_table[,1] = as.character(paste("&nbsp;<b>",my_table[,1],"</b>"))
   
   td.width = 600/(ncol(my_table)-1)-3
   first.td.width = 50
   #total.width = td.width*640 + first.td.width
-  css = paste("style='border-collapse:collapse;margin:auto;'",sep="")
+  css = paste("style='border-collapse:collapse;margin:",margin,";'",sep="")
   start <- paste("<br><table border='1' ",css," >",sep="")
   
   end <- "</tr></tbody></table>"
@@ -196,7 +196,7 @@ writeHTMLtable <- function(my_table,col.label="Center:",legend="&#x2713; = Yes /
   between = paste("</td><td align='center' style='width:",td.width,"px;'>",sep="")
   htmltable <- paste(start,thead,"<tbody><tr><td style='width:",first.td.width,"px;'>",paste(c(apply(my_table,1,paste,collapse=between)),collapse="</tr><tr><td>"),end,sep="")
   
-  cat(paste("<div style='width:1100px;margin:auto;font-size:10pt;'><div style='width:655px;margin:auto;'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;margin-top:5px;'>",legend,"</div><div></div></div><br><br>"))
+  cat(paste("<div style='width:",width1,";margin:",margin,";,font-size:10pt;'><div style='width:",width2,";margin:",margin,";'><b>",col.label,"</b>",htmltable,"<div style='width:655px;text-align:right;margin-top:",margin,";'>",legend,"</div><div></div></div><br><br>"))
 }
 
 createAuditTable = function(rdata){
@@ -250,6 +250,57 @@ order_months_as_columns = function(tmp_table,return_table,nodata=0){
   return(return_table)
 }
 
+
+format_data = function(data){  
+  # define data according to user
+  if(USER == "state_user") {
+    # Exclude Lake WBG data!
+    data <- subset(data, record_id %nin% grep("^82-", data$record_id, value = TRUE))
+  }else{
+    data <- subset(data, record_id %in% grep(paste("^", USER_GROUP_ID, "-", sep = ""), data$record_id, value = TRUE))
+  }
+  
+  # add clinic variable
+  data$clinic = as.numeric(gsub("-[0-9a-zA-Z]+","",data$record_id))
+  
+  # count total records and babies before we delete duplicates
+  TOTAL_RECORDS = nrow(data)
+  TOTAL_BABIES = sum(data$total_discharges,na.rm=TRUE)
+  
+  # delete any (both) duplicates where month, year and clinic are the same
+  data$key = paste(data$month,data$year,data$clinic,sep="")
+  duplicate_keys = unique(data[duplicated(data$key),"key"])
+  if(!identical(duplicate_keys,character(0))){
+    DUPLICATES = subset(data,data$key %in% duplicate_keys,c("clinic","record_id","month","year"))
+    colnames(DUPLICATES) = c("Center","Record ID","Month","Year")   
+    data = data[!(data$key %in% duplicate_keys),]
+  }else{
+    DUPLICATES = 0
+  }
+  
+  # add month variable
+  data$month = gsub("[\\(\\)]","",regmatches(data$month,gregexpr("\\(.*?\\)",data$month)))
+  data = data[order(as.numeric(data$year),as.numeric(data$month)),]
+  data$month = paste(data$month,substr(data$year, 3, 4),sep="/")
+  
+  # index data by record id
+  rownames(data)=data$record_id
+  
+  # calculate how many months ago last records was entered
+  MONTHS_AGO = as.numeric(gsub("/20[0-9]+", "", format(Sys.Date(), "%m/%Y"))) - as.numeric(gsub("/20[0-9]+", "", gsub("/","/20",tail(sort(unique(data$month)), n = 1))))
+  MONTHS_AGO = ifelse(MONTHS_AGO<0,12+MONTHS_AGO,MONTHS_AGO)
+
+  # GLOBAL variables
+  PILOT_DATE <<- as.Date("2013-01-01")
+  USER <<- USER
+  DUPLICATES <<- DUPLICATES
+  TOTAL_RECORDS <<- TOTAL_RECORDS
+  TOTAL_BABIES <<- TOTAL_BABIES
+  MONTHS_AGO <<- MONTHS_AGO
+  
+  
+  return(data)
+}
 
 
 
