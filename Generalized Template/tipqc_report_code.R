@@ -52,6 +52,40 @@ audit_table = order_months_as_columns(tmp_table,audit_table,nodata=" ")
 rownames(audit_table) = rownames(tmp_table)
 colnames(audit_table) = c("PBP",monthListFromPilot)
 
+
+
+
+
+
+###############################
+###############################
+###############################
+existing_pbps = matrix(ncol=7)
+for(pbp in pbps_list){
+  audit = paste(pbp,"_audit",sep="")
+  num_audited = paste(pbp,"_no_audit",sep="")
+  num_compliant = paste(pbp,"_no_compliant",sep="")
+  tmp = subset(data,data[,pbp]=="Yes" | data[,pbp]=="In progress")
+  existing_pbps = rbind(existing_pbps,cbind(as.matrix(tmp[,c("month",pbp,audit,num_audited,num_compliant,"clinic")]),pbp))
+}
+existing_pbps = existing_pbps[-1,]
+colnames(existing_pbps) = c("month","pbp_activity","audit","num_audited","num_compliant","clinic","pbp")
+rownames(existing_pbps)=NULL
+existing_pbps = data.frame(existing_pbps)
+existing_pbps$pbpactivity_audit = gsub("NA","Blank",paste(existing_pbps$pbp_activity,"/ Audit =",existing_pbps$audit))
+###############################
+###############################
+###############################
+
+
+
+
+
+
+
+
+
+
 # compliance table
 compliance_subset = audit_subset
 for(pbp in pbps_list){
@@ -74,11 +108,11 @@ rownames(compliance_table) = rownames(tmp_table)
 colnames(compliance_table) = c(monthListFromPilot)
 
 
-# one chart showing Status Of All 10 PBPs
+# one chart showing Activity Of All 10 PBPs
 allpbps = matrix(ncol=5)
 for(pbp_num in pbp_key$order){
   pbp = as.character(pbp_key[pbp_num,"pbps_list"])
-  # month, pbp status, clinic, pbp num, month key
+  # month, pbp activity, clinic, pbp num, month key
   tmp = cbind(pbp_subset[,c("month",pbp,"clinic")],rep(pbp_num,nrow(pbp_subset)),match(pbp_subset$month,monthListFromPilot))
   allpbps = rbind(allpbps,as.matrix(tmp))
 }
@@ -87,60 +121,133 @@ colnames(allpbps)=c("month","pbp","clinic","pbp_num","month_key")
 rownames(allpbps)=NULL
 allpbps = data.frame(allpbps)
 allpbps_y_inprog = allpbps[allpbps$pbp %in% c("Yes","In progress"),]
-# rdata = allpbps
-# columnOfInterest = "pbp"
-# chartTitle = "Status Of All 10 PBPs"
-# categories=c("No","Yes","In progress")
-# colors=c("red","green","lightgreen")
-# fromDate=PILOT_DATE
-# include.na=TRUE
 
 
 checkmark = '&#x2713;'
 
 # begin charts
 if(USER=="state_user"){
-  # one percentage chart showing Status Of All PBPs
-  chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart illustrating the status of all PBPs for all participating clinics over time. This chart only shows the <i>status</i> of the implementation of PBPs (Yes, In progress, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
+  # one percentage chart showing Activity Of All PBPs
+  chartTitle = paste("Activity of All ",length(pbps_list)," PBPs",sep="")
+  cat(paste("<ul><li class='subsection'><span class='header'>Aggregate PBP Activity</span> <p>Following is a stacked bar chart illustrating the activity of all PBPs for all participating clinics over time. This chart only shows the <i>activity</i> of the implementation of PBPs (Yes, In progress, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
   stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
   cat("<br>")
   # sunflower plot
   createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
   # stacked bar chart for each PBP
-  cat(paste("</li><li class='subsection'><span class='header'>Status of Each PBP</span> <p>Following are stacked bar charts illustrating the status of each PBP for all participating clinics over time. These charts only show the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the status of each PBP for each month.</p>"))
+  cat(paste("</li><li class='subsection'><span class='header'>Activity of Each PBP</span> <p>Following are stacked bar charts illustrating the activity of each PBP for all participating clinics over time. These charts only show the <i>activity</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the activity of each PBP for each month.</p>"))
   # if state_user, show a percentage plot and table of Yes/Inprogress for each pbp
   for(pbp in pbps_list){
     stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE)
     createCheckMarkTable(rdata=subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),yaxis="clinic",col.label="Center:")
   }
   cat("</li>")
+  ###############################
+  ###############################
+  ###############################
+  # compliant pbps
+  
+  clinicList = unique(existing_pbps$clinic)
+  clinicList = sort(clinicList)
+  bubbleChartColors = rainbow(length(clinicList))
+  for(i in 1:length(clinicList)){
+    existing_pbps[existing_pbps$clinic==clinicList[i],"color"]=bubbleChartColors[i]
+  }
+  group.colors = rainbow(length(clinicList))
+  names(group.colors)=clinicList
+  
+  max_circle_size = 80
+  max_num_audited = max(as.numeric(levels(existing_pbps$num_audited))[!is.na(as.numeric(levels(existing_pbps$num_audited)))])
+  sizing_element = max_circle_size / max_num_audited
+    
+
+  
+  for(pbp_index in 1:length(pbps_list)){
+    audited_pbps = subset(existing_pbps,(existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited)) & (!is.na(existing_pbps$num_compliant) & existing_pbps$pbp==pbps_list[pbp_index]))
+    audited_pbps[,"num_audited"] = as.numeric(paste(as.numeric(audited_pbps[,"num_audited"])))
+    audited_pbps[,"num_compliant"] = as.numeric(paste(as.numeric(audited_pbps[,"num_compliant"])))
+    audited_pbps$perc_compliant = audited_pbps$num_compliant/audited_pbps$num_audited
+    audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
+#     radius <- sqrt(as.numeric(audited_pbps$num_audited)/ pi ) 
+    
+    # start writing png
+    pngFileName = paste('img/bubblechart_',pbps_list[pbp_index],'.png',sep="")
+#     png(pngFileName,height=h,width=w)    
+      # bottom, left, top, right margins
+      par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
+#       q = qplot(month, perc_compliant, data = audited_pbps, label = audited_pbps$clinic, colour=color, xlab="Month", ylim = c(0,1), ylab="Compliance Rate",main=label(data[,pbps_list[pbp_index]]), size = num_audited,legend=FALSE)  + 
+#         scale_size(range = c(min(audited_pbps$num_audited)/2, max(audited_pbps$num_audited)/2)) + 
+#         geom_point() +
+#         scale_colour_manual(values=group.colors) +
+#         theme_bw(base_size=18) +
+#         theme(axis.line = element_line(colour = "black"),
+#              panel.grid.major = element_blank(),
+#              panel.grid.minor = element_blank(),
+#              panel.border = element_blank(),
+#              panel.background = element_blank(),
+#              title = element_text(size=14)) 
+#       ggsave(q,file=pngFileName,scale=1,height=7,dpi=72)
+    
+      audited_pbps$date = as.Date(gsub("/","/01/",audited_pbps$month),format="%m/%d/%y")
+      
+      library(scales)
+      gg = ggplot(audited_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=clinic, colour = factor(clinic)),legend=FALSE)+
+      scale_size(range = c(min(audited_pbps$num_audited)*sizing_element, max(audited_pbps$num_audited)*sizing_element)) + 
+      geom_point() +
+      theme_bw(base_size=18) +
+      theme(axis.line = element_line(colour = "black"),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.border = element_blank(),
+            panel.background = element_blank(),
+            title = element_text(size=14)) +
+      scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-4-1"), Sys.Date())) +
+      scale_y_continuous(name="Compliance Rate", limits=c(0,1)) +
+      scale_colour_manual(values=group.colors) + 
+      labs(title=label(data[,pbps_list[pbp_index]]))
+    
+    assign(paste('bubblechart_',pbp_index,sep=""),gg)
+      
+    #ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
+    
+    
+    
+    #     symbols(audited_pbps$month_key, audited_pbps$perc_compliant, circles=radius, inches=0.35, fg="white", bg=audited_pbps$color, xlab="Month", ylab="Compliance Rate", main=pbps_list[pbp_index])
+  #     text(audited_pbps$month_key, audited_pbps$perc_compliant,audited_pbps$clinic)
+  #     legendX = (max(audited_pbps$month_key) - min(audited_pbps$month_key))/5 + max(audited_pbps$month_key)
+  #     legendY = max(audited_pbps$perc_compliant)
+  #     legendY_increment = (legendY-min(audited_pbps$perc_compliant))/20
+  #     text(legendX,legendY+(2*legendY_increment),"Center:")
+  #     legend(legendX,legendY+(legendY_increment),clinicList,col=bubbleChartColors,pch=19)
+  #     legend(legendX,legendY-(legendY_increment*15),c("small","medium","large"),pt.cex=c(.5,1,1.5),pch=19)
+#     dev.off()
+    
+    # output image to page
+    #cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='",pngFileName,"'></div>",sep=""));
+  }
+  library(gridExtra)
+  png("img/bubble_chart.png",height=2000,width=800)  
+  multiplot(bubblechart_1, bubblechart_2, bubblechart_3, bubblechart_4, bubblechart_5,cols=1)
+  dev.off()
+  cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='img/bubble_chart.png'></div>",sep=""));
+  
+  ###############################
+  ###############################
+  ###############################
 }else{
-  # one raw count chart showing Status Of All PBPs
-  chartTitle = paste("Status of All ",length(pbps_list)," PBPs")
-  cat(paste("<ul><li class='subsection'><span class='header'>",chartTitle,"</span> <p>Following is a stacked bar chart of counts illustrating the status of all PBPs over time. This chart only shows the <i>status</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records.</p>"))
+  # one raw count chart showing Activity Of All PBPs
+  chartTitle = paste("Activity of All ",length(pbps_list)," PBPs",sep="")
+  cat(paste("<ul><li class='subsection'><span class='header'>PBP Activity</span> <p>Following is a stacked bar chart of counts illustrating the activity of all PBPs over time. This chart only shows the <i>activity</i> of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records. The table below the graph indicates the activity state for each project PBP by month.</p>"))
   stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
   # table of Yes / In progress
   createCheckMarkTable(rdata=pbp_subset,yaxis="pbp",col.label="PBP:")  
   cat("</li>")
   # local - show raw count of audited and % compliant
-  sectionTitle = paste("Audited PBPs")
-  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following stacked bar chart is a breakdown of the Yes/In Progress status of all PBPs, based on whether or not each PBP was audited that month. Blue shades indicate PBPs with an 'In progress' status. Green shades indicate a status of 'Yes'. The varying shades indicate whether or not the PBP was audited (Yes, No, or Blank). The table displays the number of records audited for each PBP each month. PBPs with a status of Yes/In progress that are indicated as having been audited for a given month, but don't have the number audited entered in REDCap are indicated in red as 'missing'.</p>"))
+  sectionTitle = paste("PBP Measurement")
+  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following stacked bar chart is a breakdown of the Yes/In Progress activity of all PBPs, based on whether or not each PBP was audited that month. Blue shades indicate PBPs with an 'In progress' activity. Green shades indicate an activity of 'Yes'. The varying shades indicate whether or not the PBP was audited (Yes, No, or Blank). The following table indicates the number of observations (denominator) stored in REDCap for each PBP by month.  Note this only indicates the sample size during months when data were entered.  The numbers do <i>not</i> reflect performance or compliance with the PBP processes. PBPs with an activity of Yes/In progress that are indicated as having been audited for a given month, but don't have the number audited entered in REDCap are indicated in red as 'missing'.</p>"))
   audited_list = paste(pbps_list,"_audit",sep="")
-  existing_pbps = matrix(ncol=6)
-  for(pbp in pbps_list){
-    audit = paste(pbp,"_audit",sep="")
-    num_audited = paste(pbp,"_no_audit",sep="")
-    num_compliant = paste(pbp,"_no_compliant",sep="")
-    tmp = subset(data,data[,pbp]=="Yes" | data[,pbp]=="In progress")
-    existing_pbps = rbind(existing_pbps,as.matrix(tmp[,c("month",pbp,audit,num_audited,num_compliant,"clinic")]))
-  }
-  existing_pbps = existing_pbps[-1,]
-  colnames(existing_pbps) = c("month","pbp","audit","num_audited","num_compliant","clinic")
-  rownames(existing_pbps)=NULL
-  existing_pbps = data.frame(existing_pbps)
-  existing_pbps$pbpstatus_audit = gsub("NA","Blank",paste(existing_pbps$pbp,"/ Audit =",existing_pbps$audit))
-  stackedBarChart(existing_pbps,"pbpstatus_audit","No. of Audited PBPs with Status of Yes/In Progress",type="count",
+  
+  stackedBarChart(existing_pbps,"pbpactivity_audit","No. of Audited PBPs with Activity of Yes/In Progress",type="count",
     categories=c("In progress / Audit = No", "In progress / Audit = Yes","In progress / Audit = Blank","Yes / Audit = No","Yes / Audit = Yes","Yes / Audit = Blank"),
     colors=c("blue","cyan","lightblue","darkgreen","green","lightgreen"),ymax=10,include.na=FALSE)
   writeHTMLtable(audit_table,col.label="PBP:",legend="Numbers indicate # audited. 'Missing' means that PBP was audited, but # audited is missing in REDCap.",include.colnames=FALSE)
@@ -149,7 +256,7 @@ if(USER=="state_user"){
   
   # percent compliant
   sectionTitle = paste("PBP Audit Compliance")
-  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following heat map visualizes the compliance rate of audited PBPs over time. Shades of green indicate a higher compliance rate than shades of blue. Compliance rate is calculated as no. compliant divided by no. audited. </p>"))
+  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following 'heat' map visualizes the performance or compliance rate of measured PBPs over time.  States of higher performance or compliance are represented by brighter green as noted in the scale to the right.  Performance or compliance is calculated as numerator divided by denominator using data entered in REDCap.  Note all PBPs are represented, but only PBPs with data for a given month are color-coded.  Colorless PBP:months indicate only that no data was entered for that month in REDCap.</p>"))
   compliance_matrix = t(data.matrix(compliance_table))
   h = 450  				
   w = 1000
@@ -161,4 +268,12 @@ if(USER=="state_user"){
   dev.off()
   cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
   cat("</li>")
+
+
+
+
+  
+
+
+
 }

@@ -209,7 +209,7 @@ createAuditTable = function(rdata){
 }
 
 createSunFlowerPlot = function(rdata){
-  cat(paste("</li><li class='subsection'><span class='header'>Sunflower Plot - Number of Centers with Yes / In Progress PBPs</span> <p>Following is a sunflower plot illustrating the number of centers with a status of 'Yes' or 'In progress' for each PBP. The y axis represents each PBP and the x axis represents each month. Each petal on a 'sunflower' represents a center that has indicated 'Yes' or 'In progress' for a given PBP and month.</p>"))
+  cat(paste("</li><li class='subsection'><span class='header'>Sunflower Plot of Aggregate PBP Activity</span> <p>Following is a sunflower plot illustrating the number of centers with a status of 'Yes' or 'In progress' for each PBP. The y axis represents each PBP and the x axis represents each month. Each petal on a 'sunflower' represents a center that has indicated 'Yes' or 'In progress' for a given PBP and month.</p>"))
   h = 450  				
   w = 1000
   # start writing png
@@ -263,9 +263,9 @@ format_data = function(data){
   # add clinic variable
   data$clinic = as.numeric(gsub("-[0-9a-zA-Z]+","",data$record_id))
   
-  # count total records and babies before we delete duplicates
+  # count total records and babies before we delete duplicates; for now, field for total number of babies is different, but later on should change data dictionary
   TOTAL_RECORDS = nrow(data)
-  TOTAL_BABIES = sum(data$total_discharges,na.rm=TRUE)
+  TOTAL_BABIES = ifelse(metaData[1,"form_name"] == "nas_potentially_better_practices",sum(data$total_discharges,na.rm=TRUE),sum(data$infant_discharges,na.rm=TRUE))
   
   # delete any (both) duplicates where month, year and clinic are the same
   data$key = paste(data$month,data$year,data$clinic,sep="")
@@ -300,6 +300,53 @@ format_data = function(data){
   
   
   return(data)
+}
+
+
+# Multiple plot function
+#
+# ggplot objects can be passed in ..., or to plotlist (as a list of ggplot objects)
+# - cols:   Number of columns in layout
+# - layout: A matrix specifying the layout. If present, 'cols' is ignored.
+#
+# If the layout is something like matrix(c(1,2,3,3), nrow=2, byrow=TRUE),
+# then plot 1 will go in the upper left, 2 will go in the upper right, and
+# 3 will go all the way across the bottom.
+#
+multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
+  require(grid)
+  
+  # Make a list from the ... arguments and plotlist
+  plots <- c(list(...), plotlist)
+  
+  numPlots = length(plots)
+  
+  # If layout is NULL, then use 'cols' to determine layout
+  if (is.null(layout)) {
+    # Make the panel
+    # ncol: Number of columns of plots
+    # nrow: Number of rows needed, calculated from # of cols
+    layout <- matrix(seq(1, cols * ceiling(numPlots/cols)),
+                     ncol = cols, nrow = ceiling(numPlots/cols))
+  }
+  
+  if (numPlots==1) {
+    print(plots[[1]])
+    
+  } else {
+    # Set up the page
+    grid.newpage()
+    pushViewport(viewport(layout = grid.layout(nrow(layout), ncol(layout))))
+    
+    # Make each plot, in the correct location
+    for (i in 1:numPlots) {
+      # Get the i,j matrix positions of the regions that contain this subplot
+      matchidx <- as.data.frame(which(layout == i, arr.ind = TRUE))
+      
+      print(plots[[i]], vp = viewport(layout.pos.row = matchidx$row,
+                                      layout.pos.col = matchidx$col))
+    }
+  }
 }
 
 

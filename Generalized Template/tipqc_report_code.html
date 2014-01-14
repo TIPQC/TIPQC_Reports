@@ -20,11 +20,15 @@
       ul.numeric-decimals li ul { counter-reset:subsection; }
       ul.numeric-decimals li:before{
           counter-increment:section;
-          content:counter(section) ". ";/*content:"Section " counter(section) ". ";*/
+          content:counter(section) ". ";
+          /*content:"Section " counter(section) ". ";*/
       }
       ul.numeric-decimals li ul li:before {
           counter-increment:subsection;
           content:counter(section) "." counter(subsection) " ";
+      }
+      p{
+        line-height:150%;
       }
     </style>
   </head>
@@ -59,17 +63,17 @@ data = format_data(data)
 
 
 
-<li class="section"><span class="header">Report Summary</span>
+<li class="section"><span class="header">Report Summary</span><br></br>
   <ul>
   <li> As of "today" (<%= format(thisreport, format = "%B %d, %Y") %>), <%= TOTAL_RECORDS %> records have been saved in REDCap<%= ifelse(USER!='state_user'," for your center","")%>.</li>
-  <li>These records include total <%= TOTAL_BABIES %> babies</li>
+  <li>These records include a total of <%= TOTAL_BABIES %> babies.</li>
   <li> These records span the months of <%= as.character(head(sort(unique(data$month)), n = 1)) %> to <%= as.character(tail(sort(unique(data$month)), n = 1)) %>. </li>
   <li> Based on these dates, the most recent month of data captured in REDCap<%= ifelse(USER!='state_user'," for your center","")%> is <%= MONTHS_AGO %> month(s) ago.
   <% if(!(identical(DUPLICATES,0))) {%>
     <li> List of duplicate records: <br>
     <% 
       cat("<div style='padding-left:25px;'>")
-      writeHTMLtable(DUPLICATES,margin=0,legend="",include.colnames=TRUE,col.label="",width1='280px',width2='280px');
+      writeHTMLtable(DUPLICATES,margin=0,legend="",include.colnames=TRUE,col.label="",width1='380px',width2='380px');
       cat("</div>")
       cat("</li>")
  }else {cat("<li>No duplicate records.</li>" )}%>
@@ -84,8 +88,16 @@ data = format_data(data)
 
 
 
-  <li class="section"><span class="header">Potentially Better Practices (PBPs)</span>
-  <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Maecenas nec orci nulla. Proin at aliquam ipsum, non bibendum leo. Suspendisse varius lorem diam. Ut et nunc at urna scelerisque pretium vel in mauris. Donec blandit nibh et pharetra viverra. Etiam tincidunt lorem in dui commodo placerat. Quisque et tortor sem. Duis ut urna neque. Curabitur ac malesuada quam, et malesuada nisi. Sed vehicula magna sollicitudin nulla pulvinar, eu suscipit metus dapibus. Mauris semper quam ac eros adipiscing, non faucibus nisl imperdiet. Nullam faucibus blandit commodo. In hac habitasse platea dictumst. </p>
+  <li class="section"><span class="header">Potentially Better Practices (PBPs)</span><br></br>
+  <div style="line-height:150%;">
+    Potentially Better Practices (PBPs) represent evidence-based practices identified in the toolkit that will potentially improve care when implemented reliably in your center.  In general, we follow PBPs as process measures to follow how well we implement the practice.  In terms of the 3 questions in the IHI change model:
+      <div style="margin-left:3em;">
+        &bull; The aim for each PBP is to achieve high reliability implementation (>90%) of that PBP<br>
+        &bull; You will know a change or intervention is an improvement when 1) the change increases PBP implementation reliability and/or 2) a corresponding improvement in project outcome measures is seen. <br>
+        &bull; What needs to be changed to more reliably implement the PBP is up to your team, but expected improvements from an intervention should be written down before the intervention or change is made.<br>
+      </div>
+    What do we measure?  In some cases, a specific operational definition for the PBP process measure will be provided in the toolkit that specifies each component of the process measure.  In other cases, local teams build their own measures using a variety of strategies with a goal of creating a simple measure that accurately captures whether the PBP is actually being implemented.<br><br>
+  </div>
     <%
       source('tipqc_report_code.R')
     %>
