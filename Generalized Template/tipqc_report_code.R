@@ -168,25 +168,9 @@ if(USER=="state_user"){
     audited_pbps[,"num_compliant"] = as.numeric(paste(as.numeric(audited_pbps[,"num_compliant"])))
     audited_pbps$perc_compliant = audited_pbps$num_compliant/audited_pbps$num_audited
     audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
-#     radius <- sqrt(as.numeric(audited_pbps$num_audited)/ pi ) 
-    
-    # start writing png
-    pngFileName = paste('img/bubblechart_',pbps_list[pbp_index],'.png',sep="")
-#     png(pngFileName,height=h,width=w)    
+  
       # bottom, left, top, right margins
       par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
-#       q = qplot(month, perc_compliant, data = audited_pbps, label = audited_pbps$clinic, colour=color, xlab="Month", ylim = c(0,1), ylab="Compliance Rate",main=label(data[,pbps_list[pbp_index]]), size = num_audited,legend=FALSE)  + 
-#         scale_size(range = c(min(audited_pbps$num_audited)/2, max(audited_pbps$num_audited)/2)) + 
-#         geom_point() +
-#         scale_colour_manual(values=group.colors) +
-#         theme_bw(base_size=18) +
-#         theme(axis.line = element_line(colour = "black"),
-#              panel.grid.major = element_blank(),
-#              panel.grid.minor = element_blank(),
-#              panel.border = element_blank(),
-#              panel.background = element_blank(),
-#              title = element_text(size=14)) 
-#       ggsave(q,file=pngFileName,scale=1,height=7,dpi=72)
     
       audited_pbps$date = as.Date(gsub("/","/01/",audited_pbps$month),format="%m/%d/%y")
       
@@ -209,21 +193,6 @@ if(USER=="state_user"){
     assign(paste('bubblechart_',pbp_index,sep=""),gg)
       
     #ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
-    
-    
-    
-    #     symbols(audited_pbps$month_key, audited_pbps$perc_compliant, circles=radius, inches=0.35, fg="white", bg=audited_pbps$color, xlab="Month", ylab="Compliance Rate", main=pbps_list[pbp_index])
-  #     text(audited_pbps$month_key, audited_pbps$perc_compliant,audited_pbps$clinic)
-  #     legendX = (max(audited_pbps$month_key) - min(audited_pbps$month_key))/5 + max(audited_pbps$month_key)
-  #     legendY = max(audited_pbps$perc_compliant)
-  #     legendY_increment = (legendY-min(audited_pbps$perc_compliant))/20
-  #     text(legendX,legendY+(2*legendY_increment),"Center:")
-  #     legend(legendX,legendY+(legendY_increment),clinicList,col=bubbleChartColors,pch=19)
-  #     legend(legendX,legendY-(legendY_increment*15),c("small","medium","large"),pt.cex=c(.5,1,1.5),pch=19)
-#     dev.off()
-    
-    # output image to page
-    #cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='",pngFileName,"'></div>",sep=""));
   }
   library(gridExtra)
   png("img/bubble_chart.png",height=2000,width=800)  
