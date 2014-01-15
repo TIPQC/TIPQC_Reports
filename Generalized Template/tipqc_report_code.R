@@ -60,13 +60,16 @@ colnames(audit_table) = c("PBP",monthListFromPilot)
 ###############################
 ###############################
 ###############################
-existing_pbps = matrix(ncol=7)
+existing_pbps = as.data.frame(matrix(ncol=7))
+colnames(existing_pbps) = c("month","pbp_activity","audit","num_audited","num_compliant","clinic","pbp")
 for(pbp in pbps_list){
   audit = paste(pbp,"_audit",sep="")
   num_audited = paste(pbp,"_no_audit",sep="")
   num_compliant = paste(pbp,"_no_compliant",sep="")
   tmp = subset(data,data[,pbp]=="Yes" | data[,pbp]=="In progress")
-  existing_pbps = rbind(existing_pbps,cbind(as.matrix(tmp[,c("month",pbp,audit,num_audited,num_compliant,"clinic")]),pbp))
+  subsetOfColumns = cbind(as.data.frame(as.matrix(tmp[,c("month",pbp,audit,num_audited,num_compliant,"clinic")])),pbp)
+  colnames(subsetOfColumns) <- colnames(existing_pbps) 
+  existing_pbps = rbind(existing_pbps,subsetOfColumns)
 }
 existing_pbps = existing_pbps[-1,]
 colnames(existing_pbps) = c("month","pbp_activity","audit","num_audited","num_compliant","clinic","pbp")
@@ -155,11 +158,14 @@ if(USER=="state_user"){
   }
   group.colors = rainbow(length(clinicList))
   names(group.colors)=clinicList
+ 
+  #remove NAs
+  existing_pbps$month_key = match(existing_pbps$month,monthListFromPilot)  
+  existing_pbps = subset(existing_pbps,with(existing_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
   
   max_circle_size = 80
   max_num_audited = suppressWarnings(max(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
   sizing_element = max_circle_size / max_num_audited
-    
 
   for(pbp_index in 1:length(pbps_list)){
     audited_pbps = subset(existing_pbps,(existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited)) & (!is.na(existing_pbps$num_compliant) & existing_pbps$pbp==pbps_list[pbp_index]))
@@ -167,17 +173,17 @@ if(USER=="state_user"){
     audited_pbps[,"num_audited"] = as.numeric(paste(audited_pbps[,"num_audited"]))
     audited_pbps[,"num_compliant"] = as.numeric(paste(audited_pbps[,"num_compliant"]))
     audited_pbps$perc_compliant = audited_pbps$num_compliant/audited_pbps$num_audited
-    audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
+    #audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
     # remove NA's
-    audited_pbps = subset(audited_pbps,with(audited_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
+    #audited_pbps = subset(audited_pbps,with(audited_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
     
   
       # bottom, left, top, right margins
       par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
     
       audited_pbps$date = as.Date(gsub("/","/01/",audited_pbps$month),format="%m/%d/%y")
-      cat("min: ",min(audited_pbps$num_audited)*sizing_element,"<br>")
-      cat("max: ",max(audited_pbps$num_audited)*sizing_element,"<br>")  
+      #cat("min: ",min(audited_pbps$num_audited)*sizing_element,"<br>")
+      #cat("max: ",max(audited_pbps$num_audited)*sizing_element,"<br>")  
     
       gg = ggplot(audited_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=clinic, colour = factor(clinic)),legend=FALSE)+
       scale_size(range = c(min(audited_pbps$num_audited)*sizing_element, max(audited_pbps$num_audited)*sizing_element)) + 
@@ -195,8 +201,9 @@ if(USER=="state_user"){
       labs(title=label(data[,pbps_list[pbp_index]]))
     assign(paste('bubblechart',pbp_index,sep=""),gg)
     assign(paste('bubbledata',pbp_index,sep=""),audited_pbps)
-      
-    #ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
+    pngFileName = paste('img/bubblechart_',pbp_index,'.png',sep="") 
+    
+    ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
   }
   #library(gridExtra)
   png("img/bubble_chart.png",height=2000,width=800)  
