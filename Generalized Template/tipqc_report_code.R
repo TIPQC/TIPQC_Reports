@@ -157,24 +157,28 @@ if(USER=="state_user"){
   names(group.colors)=clinicList
   
   max_circle_size = 80
-  max_num_audited = max(as.numeric(levels(existing_pbps$num_audited))[!is.na(as.numeric(levels(existing_pbps$num_audited)))])
+  max_num_audited = suppressWarnings(max(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
   sizing_element = max_circle_size / max_num_audited
     
 
-  
   for(pbp_index in 1:length(pbps_list)){
     audited_pbps = subset(existing_pbps,(existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited)) & (!is.na(existing_pbps$num_compliant) & existing_pbps$pbp==pbps_list[pbp_index]))
-    audited_pbps[,"num_audited"] = as.numeric(paste(as.numeric(audited_pbps[,"num_audited"])))
-    audited_pbps[,"num_compliant"] = as.numeric(paste(as.numeric(audited_pbps[,"num_compliant"])))
+    # convert variables to numeric
+    audited_pbps[,"num_audited"] = as.numeric(paste(audited_pbps[,"num_audited"]))
+    audited_pbps[,"num_compliant"] = as.numeric(paste(audited_pbps[,"num_compliant"]))
     audited_pbps$perc_compliant = audited_pbps$num_compliant/audited_pbps$num_audited
     audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
+    # remove NA's
+    audited_pbps = subset(audited_pbps,with(audited_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
+    
   
       # bottom, left, top, right margins
       par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
     
       audited_pbps$date = as.Date(gsub("/","/01/",audited_pbps$month),format="%m/%d/%y")
-      
-      library(scales)
+      cat("min: ",min(audited_pbps$num_audited)*sizing_element,"<br>")
+      cat("max: ",max(audited_pbps$num_audited)*sizing_element,"<br>")  
+    
       gg = ggplot(audited_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=clinic, colour = factor(clinic)),legend=FALSE)+
       scale_size(range = c(min(audited_pbps$num_audited)*sizing_element, max(audited_pbps$num_audited)*sizing_element)) + 
       geom_point() +
@@ -185,20 +189,25 @@ if(USER=="state_user"){
             panel.border = element_blank(),
             panel.background = element_blank(),
             title = element_text(size=14)) +
-      scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-4-1"), Sys.Date())) +
+      scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-1-1"), Sys.Date())) +
       scale_y_continuous(name="Compliance Rate", limits=c(0,1)) +
       scale_colour_manual(values=group.colors) + 
       labs(title=label(data[,pbps_list[pbp_index]]))
-    
-    assign(paste('bubblechart_',pbp_index,sep=""),gg)
+    assign(paste('bubblechart',pbp_index,sep=""),gg)
+    assign(paste('bubbledata',pbp_index,sep=""),audited_pbps)
       
     #ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
   }
-  library(gridExtra)
+  #library(gridExtra)
   png("img/bubble_chart.png",height=2000,width=800)  
-  multiplot(bubblechart_1, bubblechart_2, bubblechart_3, bubblechart_4, bubblechart_5,cols=1)
+  multiplot(bubblechart1, bubblechart2, bubblechart3, bubblechart4, bubblechart5,cols=1)
   dev.off()
   cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='img/bubble_chart.png'></div>",sep=""));
+  
+  png("img/bubble_chart2.png",height=2000,width=800)  
+  multiplot(bubblechart6, bubblechart7, bubblechart8, bubblechart9,cols=1)
+  dev.off()
+  cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='img/bubble_chart2.png'></div>",sep=""));
   
   ###############################
   ###############################
