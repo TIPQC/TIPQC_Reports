@@ -163,59 +163,91 @@ if(USER=="state_user"){
   existing_pbps$month_key = match(existing_pbps$month,monthListFromPilot)  
   existing_pbps = subset(existing_pbps,with(existing_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
   
-  max_circle_size = 80
+  # convert variables to numeric
+  existing_pbps[,"num_audited"] = as.numeric(paste(existing_pbps[,"num_audited"]))
+  existing_pbps[,"num_compliant"] = as.numeric(paste(existing_pbps[,"num_compliant"]))
+  existing_pbps[,"clinic"] = as.numeric(paste(existing_pbps[,"clinic"]))
+  existing_pbps$perc_compliant = existing_pbps$num_compliant/existing_pbps$num_audited
+  
+  #add date variable
+  existing_pbps$date = as.Date(gsub("/","/01/",existing_pbps$month),format="%m/%d/%y")
+  
+  # determine bubble sizes
+  max_circle_size = 40
+  min_circle_size = 3
+  min_num_audited = suppressWarnings(min(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
   max_num_audited = suppressWarnings(max(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
-  sizing_element = max_circle_size / max_num_audited
+  
+  # build legend
+  legendPlot = ggplot(existing_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=num_audited, colour = factor(clinic)),legend=FALSE)+
+    scale_size("Number Audited: ", limits=c(min_num_audited,max_num_audited),range=c(min_circle_size,max_circle_size), breaks=c(1,25,50,75,100,125,150,200)) + 
+    geom_point(na.rm=TRUE) +
+    theme_bw(base_size=18) +
+    theme(axis.line = element_line(colour = "black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank(),
+          title = element_text(size=14),
+          legend.position = "right",
+          legend.box = "horizontal",
+          legend.key = element_blank(),
+          legend.background = element_rect(color = "black"),
+          legend.margin = unit(x=c(0,1.5,0,0),units="in"),
+          panel.margin = unit(x=c(0,1.5,0,0),units="in")) +
+    scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-1-1"), Sys.Date())) +
+    scale_y_continuous(name="Compliance Rate", limits=c(0,1)) +
+    scale_colour_manual("Center: ",values=group.colors) + 
+    labs(title="Legend")
+  
+  png("img/bubble_legend.png",width=280,height=500)
+    extract_legend(legendPlot)
+  dev.off()
+  
+  cat(paste("<li class='subsection'><span class='header page-break-before'>Status of Each PBP</span> <p>Following are bubble charts illustrating the compliance rate of all PBPs for all centers over time. The number of observations (denominator) stored in REDCap is indicated by the size of the bubble. Centers are differentiated by color. </p>"))
+  cat(paste("<div style='width:1200px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
 
+  # build bubble charts for each pbp
   for(pbp_index in 1:length(pbps_list)){
     audited_pbps = subset(existing_pbps,(existing_pbps$audit=="Yes" & !is.na(existing_pbps$num_audited)) & (!is.na(existing_pbps$num_compliant) & existing_pbps$pbp==pbps_list[pbp_index]))
-    # convert variables to numeric
-    audited_pbps[,"num_audited"] = as.numeric(paste(audited_pbps[,"num_audited"]))
-    audited_pbps[,"num_compliant"] = as.numeric(paste(audited_pbps[,"num_compliant"]))
-    audited_pbps$perc_compliant = audited_pbps$num_compliant/audited_pbps$num_audited
-    #audited_pbps$month_key = match(audited_pbps$month,monthListFromPilot)    
-    # remove NA's
-    #audited_pbps = subset(audited_pbps,with(audited_pbps,!is.na(month_key) & (!is.na(num_audited) & !is.na(num_compliant))))
     
-  
-      # bottom, left, top, right margins
-      par(xpd=T, mar=c(5, 4, 4, 2) + c(0,7,0,12))
+    # bubble chart
+    gg = ggplot(audited_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=num_audited, colour = factor(clinic)),legend=FALSE)+
+    scale_size("Number Audited",limits=c(min_num_audited,max_num_audited),range=c(min_circle_size,max_circle_size)) + 
+    geom_point(na.rm=TRUE) +
+    theme_bw(base_size=18) +
+    theme(axis.line = element_line(colour = "black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank(),
+          title = element_text(size=14),
+          legend.position="none") +
+    scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-1-1"), Sys.Date())) +
+    scale_y_continuous(name="Compliance Rate", limits=c(0,1)) +
+    labs(title=label(data[,pbps_list[pbp_index]])) +
+    scale_color_manual(guide="none",values=group.colors)
     
-      audited_pbps$date = as.Date(gsub("/","/01/",audited_pbps$month),format="%m/%d/%y")
-      #cat("min: ",min(audited_pbps$num_audited)*sizing_element,"<br>")
-      #cat("max: ",max(audited_pbps$num_audited)*sizing_element,"<br>")  
-    
-      gg = ggplot(audited_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=clinic, colour = factor(clinic)),legend=FALSE)+
-      scale_size(range = c(min(audited_pbps$num_audited)*sizing_element, max(audited_pbps$num_audited)*sizing_element)) + 
-      geom_point() +
-      theme_bw(base_size=18) +
-      theme(axis.line = element_line(colour = "black"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            panel.border = element_blank(),
-            panel.background = element_blank(),
-            title = element_text(size=14)) +
-      scale_x_date(name="Month",breaks = date_breaks("months"),labels = date_format("%m/%y"),limits = c(as.Date("2013-1-1"), Sys.Date())) +
-      scale_y_continuous(name="Compliance Rate", limits=c(0,1)) +
-      scale_colour_manual(values=group.colors) + 
-      labs(title=label(data[,pbps_list[pbp_index]]))
     assign(paste('bubblechart',pbp_index,sep=""),gg)
+    
     assign(paste('bubbledata',pbp_index,sep=""),audited_pbps)
     pngFileName = paste('img/bubblechart_',pbp_index,'.png',sep="") 
     
-    ggsave(gg,file=pngFileName,scale=1,height=6,width=12.5,dpi=72)
-  }
-  #library(gridExtra)
-  png("img/bubble_chart.png",height=2000,width=800)  
-  multiplot(bubblechart1, bubblechart2, bubblechart3, bubblechart4, bubblechart5,cols=1)
-  dev.off()
-  cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='img/bubble_chart.png'></div>",sep=""));
-  
-  png("img/bubble_chart2.png",height=2000,width=800)  
-  multiplot(bubblechart6, bubblechart7, bubblechart8, bubblechart9,cols=1)
-  dev.off()
-  cat(paste("<div style='margin: auto; width: 1100px; padding-left: 250px;padding-bottom:50px;'><img src='img/bubble_chart2.png'></div>",sep=""));
-  
+    # if 6th plot, print legend again
+    if(pbp_index==6){
+      cat(paste("</div><div class='page-break-before' style='width:1200px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
+    }
+        
+    ggsave(gg,file=pngFileName,scale=1,height=4.3,width=12.5,dpi=72)
+    
+    # if 5th plot, add padding so legend doesn't fload "up"
+    if(pbp_index==5){
+      cat(paste("<div style='float:left;padding-right:100px;'><img src='",pngFileName,"'></div>",sep=""))
+    }else{
+      cat(paste("<div style='float:left;'><img src='",pngFileName,"'></div>",sep=""))
+    }
+  }  
+  cat(paste("</div></li></ul>"))
   ###############################
   ###############################
   ###############################

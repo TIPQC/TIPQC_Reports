@@ -4,8 +4,9 @@
   <head>
     <title><%=ifelse(metaData[1,"form_name"] == "nas_potentially_better_practices","TIPQC NAS Process Implementation Report","TIPQC BF Promotion Delivery")%></title>
     <style type="text/css">
-      @media print{@page {size: landscape}}
+      @media print{@page {size: portrait}}
       .page-break-after { page-break-after: always }
+      .page-break-before { page-break-before: always }
       h1 { font-size: 2em }
       h2 { font-size: 1em }
       h3 { font-size: 1em; font-weight: normal; text-decoration: underline }
