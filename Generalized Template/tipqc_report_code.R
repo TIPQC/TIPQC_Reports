@@ -149,15 +149,6 @@ if(USER=="state_user"){
   ###############################
   ###############################
   # compliant pbps
-  
-  clinicList = unique(existing_pbps$clinic)
-  clinicList = sort(clinicList)
-  bubbleChartColors = rainbow(length(clinicList))
-  for(i in 1:length(clinicList)){
-    existing_pbps[existing_pbps$clinic==clinicList[i],"color"]=bubbleChartColors[i]
-  }
-  group.colors = rainbow(length(clinicList))
-  names(group.colors)=clinicList
  
   #remove NAs
   existing_pbps$month_key = match(existing_pbps$month,monthListFromPilot)  
@@ -169,6 +160,12 @@ if(USER=="state_user"){
   existing_pbps[,"clinic"] = as.numeric(paste(existing_pbps[,"clinic"]))
   existing_pbps$perc_compliant = existing_pbps$num_compliant/existing_pbps$num_audited
   
+  # clinic colors
+  clinicList = unique(existing_pbps$clinic)
+  clinicList = sort(clinicList)
+  group.colors = rainbow(length(clinicList))
+  names(group.colors)=clinicList
+  
   #add date variable
   existing_pbps$date = as.Date(gsub("/","/01/",existing_pbps$month),format="%m/%d/%y")
   
@@ -177,10 +174,11 @@ if(USER=="state_user"){
   min_circle_size = 3
   min_num_audited = suppressWarnings(min(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
   max_num_audited = suppressWarnings(max(as.numeric(paste(existing_pbps$num_audited))[!is.na(as.numeric(paste(existing_pbps$num_audited)))]))
+  legend_seq = ifelse(max_num_audited>250,50,25)
   
   # build legend
   legendPlot = ggplot(existing_pbps, aes(x=date, y=perc_compliant*1, size=num_audited, label=num_audited, colour = factor(clinic)),legend=FALSE)+
-    scale_size("Number Audited: ", limits=c(min_num_audited,max_num_audited),range=c(min_circle_size,max_circle_size), breaks=c(1,25,50,75,100,125,150,200)) + 
+    scale_size("Number Audited: ", limits=c(min_num_audited,max_num_audited),range=c(min_circle_size,max_circle_size), breaks=c(1,seq(legend_seq,max_num_audited,by=legend_seq))) + 
     geom_point(na.rm=TRUE) +
     theme_bw(base_size=18) +
     theme(axis.line = element_line(colour = "black"),
@@ -200,12 +198,13 @@ if(USER=="state_user"){
     scale_colour_manual("Center: ",values=group.colors) + 
     labs(title="Legend")
   
-  png("img/bubble_legend.png",width=280,height=500)
+  png("img/bubble_legend.png",width=280,height=600)
     extract_legend(legendPlot)
   dev.off()
   
-  cat(paste("<li class='subsection'><span class='header page-break-before'>Status of Each PBP</span> <p>Following are bubble charts illustrating the compliance rate of all PBPs for all centers over time. The number of observations (denominator) stored in REDCap is indicated by the size of the bubble. Centers are differentiated by color. </p>"))
-  cat(paste("<div style='width:1200px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
+  cat(paste("<div class='page-break-before'></div"))
+  cat(paste("<li class='subsection'><span class='header'>Status of Each PBP</span> <p>Following are bubble charts illustrating the compliance rate of all PBPs for all centers over time. The number of observations (denominator) stored in REDCap is indicated by the size of the bubble. Centers are differentiated by color. </p>"))
+  cat(paste("<div style='width:1000px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
 
   # build bubble charts for each pbp
   for(pbp_index in 1:length(pbps_list)){
@@ -234,14 +233,14 @@ if(USER=="state_user"){
     pngFileName = paste('img/bubblechart_',pbp_index,'.png',sep="") 
     
     # if 6th plot, print legend again
-    if(pbp_index==6){
-      cat(paste("</div><div class='page-break-before' style='width:1200px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
+    if(pbp_index==5 | pbp_index==9){
+      cat(paste("</div><div class='page-break-before' style='width:1000px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
     }
         
-    ggsave(gg,file=pngFileName,scale=1,height=4.3,width=12.5,dpi=72)
+    ggsave(gg,file=pngFileName,scale=1,height=4.6,width=10,dpi=72)
     
     # if 5th plot, add padding so legend doesn't fload "up"
-    if(pbp_index==5){
+    if(pbp_index==4 | pbp_index==8){
       cat(paste("<div style='float:left;padding-right:100px;'><img src='",pngFileName,"'></div>",sep=""))
     }else{
       cat(paste("<div style='float:left;'><img src='",pngFileName,"'></div>",sep=""))
