@@ -20,7 +20,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
 #   columnOfInterest = "pbp"
 #   chartTitle = "Status Of All 10 PBPs"
 #   type = "count"
-#   ymax = 10
+#   ymax = ""
 #   fromDate=PILOT_DATE
 #   categories=c("No","Yes","In progress")
 #   colors=c("red","green","lightgreen")
@@ -77,7 +77,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
     if(type=="percent"){
       ymax = 100
     }else{
-      ymax = max(barPlotData)
+      ymax = max(colSums(barPlotData))
     }
   }
   ylim = c(0,ymax)
@@ -118,7 +118,7 @@ stackedBarChart = function(rdata,columnOfInterest,chartTitle,type="percent", yma
           if(type=="percent" && round(barPlotData[row,col])>=5)
             text(b[col],ypos[row,col],paste(round(barPlotData[row,col]),"%",sep=""))
           # raw count labels
-          else if(type!="percent" && round(barPlotData[row,col])>=(.1*ymax)){
+          else if(type!="percent" && round(barPlotData[row,col])>=(.05*ymax)){
             text(b[col],ypos[row,col],round(barPlotData[row,col]))
           }
         }
@@ -157,6 +157,21 @@ createCheckMarkTable = function(rdata,yaxis="clinic",col.label="Center:",checkMa
   # write tmp_table with 0's and 1's
   if(USER=="state_user"){
     tmp_table = cbind(as.matrix(table(rdata[,yaxis],rdata[,xaxis])))
+    # make sure all clinics included in table
+    if(yaxis=="clinic"){
+      clinic_df = data.frame()
+      for(clinic in CLINIC_LIST){
+        if (!(clinic %in% row.names(tmp_table))){
+          clinic_df = rbind(clinic_df,rep(0,ncol(tmp_table)))
+        }else{
+          clinic_df = rbind(clinic_df,tmp_table[as.character(clinic),])
+        }
+      }
+      rownames(clinic_df)=CLINIC_LIST
+      colnames(clinic_df) = colnames(tmp_table)
+      tmp_table = cbind(as.matrix(clinic_df))
+    }
+    
   }else{
     tmp_table = t(rdata)[pbps_list,]
     colnames(tmp_table)=rdata$month
@@ -262,6 +277,8 @@ format_data = function(data){
   
   # add clinic variable
   data$clinic = as.numeric(gsub("-[0-9a-zA-Z]+","",data$record_id))
+  CLINIC_LIST = unique(data$clinic)
+  CLINIC_LIST = sort(CLINIC_LIST)
   
   # count total records and babies before we delete duplicates; for now, field for total number of babies is different, but later on should change data dictionary
   TOTAL_RECORDS = nrow(data)
@@ -297,6 +314,7 @@ format_data = function(data){
   TOTAL_RECORDS <<- TOTAL_RECORDS
   TOTAL_BABIES <<- TOTAL_BABIES
   MONTHS_AGO <<- MONTHS_AGO
+  CLINIC_LIST <<- CLINIC_LIST
   
   
   return(data)

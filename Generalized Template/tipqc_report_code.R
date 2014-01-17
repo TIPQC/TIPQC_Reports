@@ -133,7 +133,7 @@ if(USER=="state_user"){
   # one percentage chart showing Activity Of All PBPs
   chartTitle = paste("Activity of All ",length(pbps_list)," PBPs",sep="")
   cat(paste("<ul><li class='subsection'><span class='header'>Aggregate PBP Activity</span> <p>Following is a stacked bar chart illustrating the activity of all PBPs for all participating clinics over time. This chart only shows the <i>activity</i> of the implementation of PBPs (Yes, In progress, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
-  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
+  stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"),type="count")  
   cat("<br>")
   # sunflower plot
   createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
@@ -141,7 +141,7 @@ if(USER=="state_user"){
   cat(paste("</li><li class='subsection'><span class='header'>Activity of Each PBP</span> <p>Following are stacked bar charts illustrating the activity of each PBP for all participating clinics over time. These charts only show the <i>activity</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the activity of each PBP for each month.</p>"))
   # if state_user, show a percentage plot and table of Yes/Inprogress for each pbp
   for(pbp in pbps_list){
-    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE)
+    stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE,type="count")
     createCheckMarkTable(rdata=subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),yaxis="clinic",col.label="Center:")
   }
   cat("</li>")
