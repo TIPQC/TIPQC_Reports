@@ -130,8 +130,8 @@ checkmark = '&#x2713;'
 
 # begin charts
 if(USER=="state_user"){
-  # one percentage chart showing Activity Of All PBPs
-  chartTitle = paste("Activity of All ",length(pbps_list)," PBPs",sep="")
+  # one count chart showing Activity Of All PBPs
+  chartTitle = paste("Activity Count of All ",length(pbps_list)," PBPs",sep="")
   cat(paste("<ul><li class='subsection'><span class='header'>Aggregate PBP Activity</span> <p>Following is a stacked bar chart illustrating the activity of all PBPs for all participating clinics over time. This chart only shows the <i>activity</i> of the implementation of PBPs (Yes, In progress, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected.</p>"))
   stackedBarChart(allpbps,"pbp",chartTitle,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"),type="count")  
   cat("<br>")
@@ -139,7 +139,7 @@ if(USER=="state_user"){
   createSunFlowerPlot(allpbps_y_inprog[,c("month_key","pbp_num")])
   # stacked bar chart for each PBP
   cat(paste("</li><li class='subsection'><span class='header'>Activity of Each PBP</span> <p>Following are stacked bar charts illustrating the activity of each PBP for all participating clinics over time. These charts only show the <i>activity</i> of the implementation of PBPs (In progress, Yes, No, or Blank (missing data)). All data for each PBP is included regardless of whether or not the PBP was audited that month. However, duplicate records are excluded. That is, if a single center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. The table after each bar chart illustrates which centers entered 'Yes' or 'In progress' for the activity of each PBP for each month.</p>"))
-  # if state_user, show a percentage plot and table of Yes/Inprogress for each pbp
+  # if state_user, show a count plot and table of Yes/Inprogress for each pbp
   for(pbp in pbps_list){
     stackedBarChart(pbp_subset,pbp,label(data[,pbp]),categories=c("No","Yes","In progress"),colors=c("red","green","cyan"),include.totalrecords=FALSE,type="count")
     createCheckMarkTable(rdata=subset(pbp_subset,pbp_subset[,pbp] %in% c("Yes","In progress")),yaxis="clinic",col.label="Center:")
@@ -252,29 +252,43 @@ if(USER=="state_user"){
   ###############################
 }else{
   # one raw count chart showing Activity Of All PBPs
-  chartTitle = paste("Activity of All ",length(pbps_list)," PBPs",sep="")
-  cat(paste("<ul><li class='subsection'><span class='header'>PBP Activity</span> <p>Following is a stacked bar chart of counts illustrating the activity of all PBPs over time. This chart only shows the <i>activity</i> of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records. The table below the graph indicates the activity state for each project PBP by month.</p>"))
+  chartTitle = paste("Activity Count of All ",length(pbps_list)," PBPs",sep="")
+  cat(paste("<ul><li class='subsection'><span class='header'>PBP Activity - Counts</span> <p>Following is a stacked bar chart of counts illustrating the activity of all PBPs over time. This chart only shows the <i>activity</i> of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records.</p>"))
   stackedBarChart(allpbps,"pbp",chartTitle,type="count",ymax=10,categories=c("No","In progress","Yes"),colors=c("red","cyan","green"))  
-  # table of Yes / In progress
-  createCheckMarkTable(rdata=pbp_subset,yaxis="pbp",col.label="PBP:")  
+  cat("</li>")
+  
+  # Heat Map of Activity Level
+  allpbpsBlank = allpbps
+  allpbpsBlank[is.na(allpbpsBlank$pbp)]="Blank"
+  
+  heatmap = ggplot(allpbpsBlank, aes(month, pbp_num)) + geom_tile(aes(fill = pbp), colour = "black")  +   
+    scale_fill_manual("PBP Activity Level: ", values= c("purple","green","cyan","red"), limits=c("Blank","Yes","In progress","No")) +
+    scale_x_discrete(name="Month", limits = monthListFromPilot) +
+    scale_y_discrete(name="PBP", limits=pbp_key$order) +
+    labs(title="PBP Activity Level") + 
+    theme_bw(base_size=18) +
+    theme(axis.line = element_line(colour = "black"),
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank(),
+          title = element_text(size=14),
+          legend.position = "right",
+          legend.key = element_blank(),
+          legend.background = element_rect(color = "black"))
+  
+  pngFileName = "img/heatmap.png";
+  ggsave(heatmap,file=pngFileName,scale=1,height=5.5,width=13,dpi=72)
+  cat(paste("<li class='subsection'><span class='header'>PBP Activity - Heat Map</span> <p>Following is a heat map illustrating the activity of all PBPs over time. This chart only shows the <i>activity</i> of PBPs (In progress, Yes, No, or Blank (missing data)). All data is included regardless of whether or not a PBP was audited that month. However, duplicate records are excluded. This means that if your center has more than one record for a given month, both records for that month are excluded from the data until the data entry error is corrected. Please see the Report Summary section of this report for any duplicate records.</p>"))
+  cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 180px;'><img src='",pngFileName,"'></div></div>",sep=""));
   cat("</li>")
   
   
   
-  # percent compliant
-  sectionTitle = paste("PBP Audit Compliance")
-  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following 'heat' map visualizes the performance or compliance rate of measured PBPs over time.  States of higher performance or compliance are represented by brighter green as noted in the scale to the right.  Performance or compliance is calculated as numerator divided by denominator using data entered in REDCap.  Note all PBPs are represented, but only PBPs with data for a given month are color-coded.  Colorless PBP:months indicate only that no data was entered for that month in REDCap.</p>"))
-  compliance_matrix = t(data.matrix(compliance_table))
-  h = 450  				
-  w = 1000
-  # start writing png
-  pngFileName = paste('img/heatmap.png',sep="")
-  png(pngFileName,height=h,width=w)
-    color_gradient = c("#002BE5","#0032DD","#003AD6","#0042CF","#004AC8","#0051C1","#0059BA","#0061B2","#0069AB","#0071A4","#00789D","#008096","#00888F","#009087","#009880","#009F79","#00A772","#00AF6B","#00B764","#00BF5D")
-    levelplot(compliance_matrix,col.regions=color_gradient,xlab="Month",ylab="PBP",main="Compliance of Audited PBPs")
-  dev.off()
-  cat(paste("<div style='margin:auto;width:1100px;'><div style='width: 1000px; padding-left: 97px;'><img src='",pngFileName,"'></div></div>",sep=""));
-  cat("</li>")
+  
+  
+  
+  
 
 
 
