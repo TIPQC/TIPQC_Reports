@@ -258,16 +258,7 @@ if(USER=="state_user"){
   # table of Yes / In progress
   createCheckMarkTable(rdata=pbp_subset,yaxis="pbp",col.label="PBP:")  
   cat("</li>")
-  # local - show raw count of audited and % compliant
-  sectionTitle = paste("PBP Measurement")
-  cat(paste("<li class='subsection'><span class='header'>",sectionTitle,"</span> <p>The following stacked bar chart is a breakdown of the Yes/In Progress activity of all PBPs, based on whether or not each PBP was audited that month. Blue shades indicate PBPs with an 'In progress' activity. Green shades indicate an activity of 'Yes'. The varying shades indicate whether or not the PBP was audited (Yes, No, or Blank). The following table indicates the number of observations (denominator) stored in REDCap for each PBP by month.  Note this only indicates the sample size during months when data were entered.  The numbers do <i>not</i> reflect performance or compliance with the PBP processes. PBPs with an activity of Yes/In progress that are indicated as having been audited for a given month, but don't have the number audited entered in REDCap are indicated in red as 'missing'.</p>"))
-  audited_list = paste(pbps_list,"_audit",sep="")
   
-  stackedBarChart(existing_pbps,"pbpactivity_audit","No. of Audited PBPs with Activity of Yes/In Progress",type="count",
-    categories=c("In progress / Audit = No", "In progress / Audit = Yes","In progress / Audit = Blank","Yes / Audit = No","Yes / Audit = Yes","Yes / Audit = Blank"),
-    colors=c("blue","cyan","lightblue","darkgreen","green","lightgreen"),ymax=10,include.na=FALSE)
-  writeHTMLtable(audit_table,col.label="PBP:",legend="Numbers indicate # audited. 'Missing' means that PBP was audited, but # audited is missing in REDCap.",include.colnames=FALSE)
-  cat("</li>")
   
   
   # percent compliant
