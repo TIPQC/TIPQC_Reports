@@ -232,10 +232,7 @@ if(USER=="state_user"){
     assign(paste('bubbledata',pbp_index,sep=""),audited_pbps)
     pngFileName = paste('img/bubblechart_',pbp_index,'.png',sep="") 
     
-    # if 6th plot, print legend again
-    if(pbp_index==5 | pbp_index==9){
-      cat(paste("</div><div class='page-break-before' style='width:1000px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
-    }
+    
         
     ggsave(gg,file=pngFileName,scale=1,height=4.6,width=10,dpi=72)
     
@@ -244,6 +241,11 @@ if(USER=="state_user"){
       cat(paste("<div style='float:left;padding-right:100px;'><img src='",pngFileName,"'></div>",sep=""))
     }else{
       cat(paste("<div style='float:left;'><img src='",pngFileName,"'></div>",sep=""))
+    }
+    
+    # if 6th plot, print legend again
+    if(pbp_index==5 | pbp_index==9){
+      cat(paste("</div><div class='page-break-before' style='width:1000px;margin:auto;'><div style='margin: auto; float:right;'><div style='text-align: center; font-family: Arial; font-size: 12pt;'>Bubble Chart Legend:</div><img src='img/bubble_legend.png'></div>",sep=""))
     }
   }  
   cat(paste("</div></li></ul>"))
@@ -259,7 +261,8 @@ if(USER=="state_user"){
   
   # Heat Map of Activity Level
   allpbpsBlank = allpbps
-  allpbpsBlank[is.na(allpbpsBlank$pbp)]="Blank"
+  allpbpsBlank$pbp = factor(allpbps$pbp, levels=c("Blank","No","In progress","Yes"))
+  allpbpsBlank[is.na(allpbpsBlank$pbp),"pbp"]="Blank"
   
   heatmap = ggplot(allpbpsBlank, aes(month, pbp_num)) + geom_tile(aes(fill = pbp), colour = "black")  +   
     scale_fill_manual("PBP Activity Level: ", values= c("purple","green","cyan","red"), limits=c("Blank","Yes","In progress","No")) +
@@ -275,7 +278,9 @@ if(USER=="state_user"){
           title = element_text(size=14),
           legend.position = "right",
           legend.key = element_blank(),
-          legend.background = element_rect(color = "black"))
+          legend.background = element_rect(color = "black"),
+          plot.title = element_text(vjust=4,face="bold"),
+          plot.margin=unit(x=c(1,0,0,0),units="in"))
   
   pngFileName = "img/heatmap.png";
   ggsave(heatmap,file=pngFileName,scale=1,height=5.5,width=13,dpi=72)
